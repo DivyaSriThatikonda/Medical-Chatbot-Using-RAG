@@ -1,0 +1,13 @@
+sentence-transformers>=2.6.0
+langchain
+pypdf
+python-dotenv
+pinecone[grpc]
+langchain-pinecone
+langchain_community
+langchain-openai
+openai
+streamlit
+reportlab
+langchain-huggingface>=0.0.1
+huggingface_hub>=0.23.0

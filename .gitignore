@@ -1,0 +1,28 @@
+# Python
+*.pyc
+__pycache__/
+*.pyo
+*.pyd
+.Python
+build/
+dist/
+*.egg-info/
+.venv/
+venv/
+env/
+
+# Environment
+.env
+
+# IDE
+.idea/
+*.iml
+
+# Data
+data/*
+!data/.gitkeep
+
+# Misc
+*.log
+*.bak
+*.swp
