@@ -11,3 +11,7 @@ streamlit
 reportlab
 langchain-huggingface>=0.0.1
 huggingface_hub>=0.23.0
+huggingface_hub>=0.23.0
+transformers>=4.36.0
+torch>=2.0.0
+
