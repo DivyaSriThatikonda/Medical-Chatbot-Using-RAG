@@ -41,9 +41,7 @@ Medical-Chatbot-Using-RAG/
 
 ## ⚙️ Setup Instructions
 
-**Clone the Repo:** git clone https://github.com/entbappy/End-to-end-Medical-Chatbot-Generative-AI.git
-cd End-to-end-Medical-Chatbot-Generative-AI
-
+**Clone the Repo:** https://github.com/DivyaSriThatikonda/Medical-Chatbot-Using-RAG
 
 **Install Dependencies:** pip install -r requirements.txt
 
