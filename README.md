@@ -1,4 +1,4 @@
-#### Medical Chatbot Using RAG 🤖
+# Medical Chatbot Using RAG 🤖
 # 🚀 Overview
 Hey there! I’m a fresher passionate about AI, and this is my Medical Chatbot project built with Retrieval-Augmented Generation (RAG). It’s a friendly, AI-powered assistant that helps users explore symptoms and get medical info using The Gale Encyclopedia of Medicine as its knowledge base. Designed to inform (not diagnose!), it comes with a pastel-themed UI that’s easy to use and deployed on Streamlit Community Cloud for anyone to try. This project is my way of showing recruiters I’m ready to make an impact in healthcare with AI!
 # ✨ Features
