@@ -1,4 +1,4 @@
-## Medical Chatbot Using RAG 🤖
+#### Medical Chatbot Using RAG 🤖
 # 🚀 Overview
 Hey there! I’m a fresher passionate about AI, and this is my Medical Chatbot project built with Retrieval-Augmented Generation (RAG). It’s a friendly, AI-powered assistant that helps users explore symptoms and get medical info using The Gale Encyclopedia of Medicine as its knowledge base. Designed to inform (not diagnose!), it comes with a pastel-themed UI that’s easy to use and deployed on Streamlit Community Cloud for anyone to try. This project is my way of showing recruiters I’m ready to make an impact in healthcare with AI!
 # ✨ Features
@@ -18,15 +18,25 @@ Hey there! I’m a fresher passionate about AI, and this is my Medical Chatbot p
 ## 📂 Project Structure
 Medical-Chatbot-Using-RAG/
 ├── app.py                     # Streamlit interface and core logic
+
 ├── create_index.py           # Pinecone index initialization
+
 ├── setup_project.py          # Environment setup and dependencies
+
 ├── test_pinecone.py          # Pinecone connectivity testing
+
 ├── requirements.txt          # Project dependencies
+
 ├── README.md                 # Project documentation
+
 ├── .streamlit/secrets.toml   # Secure API key storage
+
 └── src/components/
+
     ├── data_ingestion.py     # Knowledge base processing
+    
     ├── embedding.py          # Embedding generation and retry logic
+    
     └── model_api.py          # Symptom checker and chatbot logic
 
 ## ⚙️ Setup Instructions
