@@ -35,7 +35,6 @@ class MedicalChatbotAPI:
     def __init__(self):
         self.vector_store = VectorStore()
         self.retriever = self.vector_store.get_retriever()
-        # Check if API key is set
         api_key = os.getenv("OPENAI_API_KEY")
         if not api_key:
             raise ValueError("OPENAI_API_KEY environment variable not set. Please configure it in your environment.")
