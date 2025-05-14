@@ -1290,7 +1290,6 @@
 # st.markdown('</div>', unsafe_allow_html=True)
 # st.markdown('</div>', unsafe_allow_html=True)
 
-
 import streamlit as st
 from src.components.data_ingestion import DataIngestion
 from src.components.embedding import Embedding
@@ -1306,16 +1305,6 @@ st.set_page_config(
     page_title="Medical Chatbot",
     initial_sidebar_state="expanded"
 )
-
-# Function to preprocess assistant response for proper heading and bullet rendering
-def preprocess_response(content):
-    # Convert Markdown headings (## Heading) to HTML <h2> for rendering in UI
-    content = re.sub(r'##\s*(.+)', r'<h2>\1</h2>', content)
-    # Ensure bullet points are styled consistently
-    content = re.sub(r'-\s*(.+)', r'<li>\1</li>', content)
-    # Wrap bullet points in an unordered list
-    content = re.sub(r'(<li>.+?</li>\n?)+', r'<ul>\g<0></ul>', content)
-    return content
 
 # Custom CSS with theme consistency fixes and subheading styling
 st.markdown(
@@ -1571,6 +1560,16 @@ st.markdown(
     unsafe_allow_html=True
 )
 
+# Function to preprocess assistant response for proper heading and bullet rendering
+def preprocess_response(content):
+    # Convert Markdown headings (## Heading) to HTML <h2> for rendering in UI
+    content = re.sub(r'##\s*(.+)', r'<h2>\1</h2>', content)
+    # Ensure bullet points are styled consistently
+    content = re.sub(r'-\s*(.+)', r'<li>\1</li>', content)
+    # Wrap bullet points in an unordered list
+    content = re.sub(r'(<li>.+?</li>\n?)+', r'<ul>\g<0></ul>', content)
+    return content
+
 # Wrap content in custom container
 st.markdown('<div class="main-content">', unsafe_allow_html=True)
 
@@ -1594,7 +1593,7 @@ with st.sidebar:
         if symptoms:
             with st.spinner("Analyzing symptoms..."):
                 response = model_api.check_symptoms(symptoms)
-                st.markdown(f'<div class="assistant-message">{preprocess_response(response)}</div>', unsafe_allow_html=True)
+                st.markdown(f"**Analysis**: {response}")
         else:
             st.error("Please enter symptoms.")
 
