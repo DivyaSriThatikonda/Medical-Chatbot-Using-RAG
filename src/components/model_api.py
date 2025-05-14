@@ -768,34 +768,20 @@ class ModelAPI:
     def check_symptoms(self, symptoms):
         if not symptoms.strip() or symptoms.lower() in ["i don't feel well", "not feeling well"]:
             return (
-                "## Symptom Information Needed\n"
-                "- I’m sorry to hear you’re not feeling well, but I need more specific symptoms to provide a better analysis.\n"
-                "- For example, do you have a fever, pain, fatigue, or any other symptoms?\n"
-                "- I recommend consulting a doctor for a thorough evaluation."
+                "I’m sorry to hear you’re not feeling well, but I need more specific symptoms to provide a better analysis. "
+                "For example, do you have a fever, pain, fatigue, or any other symptoms? In the meantime, I recommend consulting a doctor for a thorough evaluation."
             )
-        query = (
-            "You are a medical assistant. Provide general medical information based on the user’s reported symptoms. "
-            "Follow these formatting rules strictly:\n"
-            "- Use Markdown `##` for all section headings (e.g., `## Possible Conditions`). Do not use bold (`**`), single `#`, or other heading styles.\n"
-            "- Use `-` for bullet points, with one item per bullet. Do not combine multiple items in a single bullet, use colons, or use other symbols (e.g., `*`, `•`).\n"
-            "- Avoid bold (`**`) or italic (`*`) text unless explicitly requested. Keep text plain for clarity.\n"
-            "- Structure responses with a main heading (`##`) for the topic, followed by bullet points (`-`) for key details, and plain text for additional explanations.\n"
-            "- Do not include 'Assistant:' or similar prefixes in the response.\n"
-            "- Always recommend consulting a doctor for a professional diagnosis.\n"
-            "Always respond in English. Here is the user's symptoms: I have the following symptoms: {symptoms}. "
-            "What might this indicate based on medical guidelines? Provide general information and recommend consulting a doctor."
-        ).format(symptoms=symptoms)
+        query = f"I have the following symptoms: {symptoms}. What might this indicate based on medical guidelines? Please provide general information and recommend consulting a doctor."
         try:
             result = self.qa_chain({"question": query, "chat_history": []})
             answer = result["answer"]
-            # Post-process the response to enforce formatting
+            # Post-process the response to enforce ## for section titles
             answer = self.enforce_heading_format(answer)
             return answer
         except ValueError as e:
             if "Rate limit exceeded" in str(e):
                 return (
-                    "## API Limit Reached\n"
-                    "- I’ve reached my daily request limit with the API I use to fetch detailed answers.\n"
-                    "- Please try again tomorrow, or consult a healthcare professional for advice about your symptoms in the meantime."
+                    "I’ve reached my daily request limit with the API I use to fetch detailed answers. "
+                    "Please try again tomorrow, or consult a healthcare professional for advice about your symptoms in the meantime."
                 )
             raise e
