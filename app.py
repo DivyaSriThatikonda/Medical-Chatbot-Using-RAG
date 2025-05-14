@@ -1307,6 +1307,16 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# Function to preprocess assistant response for proper heading and bullet rendering
+def preprocess_response(content):
+    # Convert Markdown headings (## Heading) to HTML <h2> for rendering in UI
+    content = re.sub(r'##\s*(.+)', r'<h2>\1</h2>', content)
+    # Ensure bullet points are styled consistently
+    content = re.sub(r'-\s*(.+)', r'<li>\1</li>', content)
+    # Wrap bullet points in an unordered list
+    content = re.sub(r'(<li>.+?</li>\n?)+', r'<ul>\g<0></ul>', content)
+    return content
+
 # Custom CSS with theme consistency fixes and subheading styling
 st.markdown(
     """
@@ -1648,16 +1658,6 @@ if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 if "messages" not in st.session_state:
     st.session_state.messages = [{"role": "assistant", "content": "How can I help with medical info today?"}]
-
-# Function to preprocess assistant response for proper heading and bullet rendering
-def preprocess_response(content):
-    # Convert Markdown headings (## Heading) to HTML <h2> for rendering in UI
-    content = re.sub(r'##\s*(.+)', r'<h2>\1</h2>', content)
-    # Ensure bullet points are styled consistently
-    content = re.sub(r'-\s*(.+)', r'<li>\1</li>', content)
-    # Wrap bullet points in an unordered list
-    content = re.sub(r'(<li>.+?</li>\n?)+', r'<ul>\g<0></ul>', content)
-    return content
 
 # Display chat messages
 for msg in st.session_state.messages:
