@@ -610,7 +610,7 @@ class ModelAPI:
                 if "blood pressure" in prev_question_lower and (
                         "cause" in prev_question_lower or "what causes" in prev_question_lower):
                     return (
-                        f"## Recap of High Blood Pressure Causes\n"
+                        "## Recap of High Blood Pressure Causes\n"
                         "- Lifestyle factors like high salt intake, obesity, and smoking.\n"
                         "- Medical conditions such as kidney disease or diabetes.\n"
                         "- Genetic predisposition, stress, and aging.\n"
@@ -619,7 +619,10 @@ class ModelAPI:
         return None
 
     def enforce_heading_format(self, response):
-        """Post-process the response to ensure section titles use ##, bullets use -, and remove unwanted bolding."""
+        """Post-process the response to ensure section titles use ##, bullets use -, and remove unwanted bolding and Assistant: prefixes."""
+        # Remove redundant "Assistant:" prefixes
+        response = re.sub(r'^Assistant:\s*', '', response, flags=re.MULTILINE)
+        
         lines = response.split('\n')
         processed_lines = []
         i = 0
@@ -634,8 +637,9 @@ class ModelAPI:
                 i += 1
                 continue
             
-            # Remove bolding (e.g., **text**) from the line
+            # Remove bolding (e.g., **text**) and italics (*text*) from the line
             line = re.sub(r'\*\*(.+?)\*\*', r'\1', line)
+            line = re.sub(r'\*(.+?)\*', r'\1', line)
             
             # Check if the line is a heading
             is_heading = False
@@ -644,7 +648,7 @@ class ModelAPI:
                 is_heading = True
                 line = line[:-1]  # Remove colon for clean heading
             # 2. Matches common heading patterns
-            elif re.match(r'^(What is [A-Za-z\s]+[\?]?$|Symptoms|Triggers|Types of [A-Za-z\s]+|Management|Causes of [A-Za-z\s]+|Prevention|Risk Factors|Treatments|Key Features|Complications|Diagnosis|Resources|When to Seek [A-Za-z\s]+)$', line):
+            elif re.match(r'^(What is [A-Za-z\s]+[\?]?$|Symptoms|Triggers|Types of [A-Za-z\s]+|Management|Causes of [A-Za-z\s]+|Prevention|Risk Factors|Treatments|Key Features|Complications|Diagnosis|Resources|When to Seek [A-Za-z\s]+|During an [A-Za-z\s]+|Example of an [A-Za-z\s]+)$', line):
                 is_heading = True
             # 3. Line starts with + or number (e.g., "+ Triggers" or "1. Symptoms")
             elif re.match(r'^[\+\d]\.\s*(.+)$', line):
@@ -723,6 +727,7 @@ class ModelAPI:
             "- Use `-` for bullet points, with one item per bullet. Do not combine multiple items in a single bullet, use colons, or use other symbols (e.g., `*`, `•`).\n"
             "- Avoid bold (`**`) or italic (`*`) text unless explicitly requested. Keep text plain for clarity.\n"
             "- Structure responses with a main heading (`##`) for the topic, followed by bullet points (`-`) for key details, and plain text for additional explanations.\n"
+            "- Do not include 'Assistant:' or similar prefixes in the response.\n"
             "Always respond in English, regardless of context or input. Do not use any other language.\n"
             f"{context}Here is the user's question: {question} (Please respond strictly in English)"
         )
@@ -768,7 +773,18 @@ class ModelAPI:
                 "- For example, do you have a fever, pain, fatigue, or any other symptoms?\n"
                 "- I recommend consulting a doctor for a thorough evaluation."
             )
-        query = f"I have the following symptoms: {symptoms}. What might this indicate based on medical guidelines? Please provide general information and recommend consulting a doctor."
+        query = (
+            "You are a medical assistant. Provide general medical information based on the user’s reported symptoms. "
+            "Follow these formatting rules strictly:\n"
+            "- Use Markdown `##` for all section headings (e.g., `## Possible Conditions`). Do not use bold (`**`), single `#`, or other heading styles.\n"
+            "- Use `-` for bullet points, with one item per bullet. Do not combine multiple items in a single bullet, use colons, or use other symbols (e.g., `*`, `•`).\n"
+            "- Avoid bold (`**`) or italic (`*`) text unless explicitly requested. Keep text plain for clarity.\n"
+            "- Structure responses with a main heading (`##`) for the topic, followed by bullet points (`-`) for key details, and plain text for additional explanations.\n"
+            "- Do not include 'Assistant:' or similar prefixes in the response.\n"
+            "- Always recommend consulting a doctor for a professional diagnosis.\n"
+            "Always respond in English. Here is the user's symptoms: I have the following symptoms: {symptoms}. "
+            "What might this indicate based on medical guidelines? Provide general information and recommend consulting a doctor."
+        ).format(symptoms=symptoms)
         try:
             result = self.qa_chain({"question": query, "chat_history": []})
             answer = result["answer"]
