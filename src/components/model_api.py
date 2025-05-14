@@ -896,75 +896,7 @@ class ModelAPI:
                     )
         return None
 
-    def enforce_heading_format(self, response):
-        """Post-process the response to ensure section titles use ##, bullets use -, and remove unwanted prefixes, bolding, and colons."""
-        # Remove redundant "Assistant:" prefixes
-        response = re.sub(r'^Assistant:\s*', '', response, flags=re.MULTILINE)
-        # Remove bolding (**text**) and italics (*text*)
-        response = re.sub(r'\*\*(.+?)\*\*', r'\1', response)
-        response = re.sub(r'\*(.+?)\*', r'\1', response)
-        
-        lines = response.split('\n')
-        processed_lines = []
-        i = 0
-        while i < len(lines):
-            line = lines[i].strip()
-            original_line = lines[i]
-            
-            # Skip empty lines
-            if not line:
-                processed_lines.append(original_line)
-                i += 1
-                continue
-            
-            # Check if the line is a heading
-            is_heading = False
-            # 1. Line ends with a colon (e.g., "Symptoms:")
-            if line.endswith(':'):
-                is_heading = True
-                line = line[:-1]  # Remove colon
-            # 2. Matches common heading patterns
-            elif re.match(r'^(What is [A-Za-z\s]+[\?]?$|Symptoms|Triggers|Types of [A-Za-z\s]+|Management|Causes of [A-Za-z\s]+|Prevention|Risk Factors|Treatments|Key Features|Complications|Diagnosis|Resources|When to Seek [A-Za-z\s]+|During an [A-Za-z\s]+|Example of an [A-Za-z\s]+|Possible Conditions|Recommendations|Recap of [A-Za-z\s]+)$', line):
-                is_heading = True
-            # 3. Line starts with + or number (e.g., "+ Triggers" or "1. Symptoms")
-            elif re.match(r'^[\+\d]\.\s*(.+)$', line):
-                is_heading = True
-                line = re.sub(r'^[\+\d]\.\s*', '', line)  # Remove prefix
-            # 4. Heuristic: Short line followed by non-list content
-            elif (len(line.split()) <= 5 and i + 1 < len(lines) and lines[i + 1].strip() and
-                  not lines[i + 1].strip().startswith(('-', '*', '•', '◦')) and
-                  not lines[i + 1].strip().startswith(tuple(f"{j}." for j in range(1, 10)))):
-                is_heading = True
-            
-            # Format headings with ##
-            if is_heading:
-                if not line.startswith('##'):
-                    line = f"## {line}"
-                processed_lines.append(line)
-            else:
-                # Handle bullet points: Ensure they use -, split combined items
-                if line.startswith(('-', '*', '•', '◦')):
-                    # Replace any bullet symbol with -
-                    line = re.sub(r'^[-*•◦]\s*', '- ', line)
-                    # Split items that contain colons or multiple points
-                    if ': ' in line:
-                        parts = line.split(': ', 1)
-                        description = parts[1].strip()
-                        # Split description into separate bullets if it contains multiple sentences
-                        sub_items = re.split(r'\.\s+', description)
-                        if len(sub_items) > 1 and sub_items[-1] == '':
-                            sub_items.pop()  # Remove trailing empty item
-                        processed_lines.append(f"- {parts[0].replace('- ', '')}")
-                        for sub_item in sub_items:
-                            if sub_item.strip():
-                                processed_lines.append(f"- {sub_item.strip()}.")
-                    else:
-                        processed_lines.append(line)
-                else:
-                    processed_lines.append(original_line)  # Preserve non-bullet, non-heading lines
-            i += 1
-        
-        return '\n'.join(processed_lines)
+   
 
     def get_response(self, question, chat_history):
         if self.is_greeting(question):
@@ -1022,8 +954,7 @@ class ModelAPI:
                     "Would you like to ask about something else?"
                 )
 
-            # Post-process the response to enforce formatting
-            answer = self.enforce_heading_format(answer)
+        
 
             # Cache the response
             self.response_cache[question_lower] = answer
@@ -1042,38 +973,7 @@ class ModelAPI:
                 )
             raise e
 
-    def check_symptoms(self, symptoms):
-        if not symptoms.strip() or symptoms.lower() in ["i don't feel well", "not feeling well"]:
-            return (
-                "## Symptom Information Needed\n"
-                "- Specific symptoms are needed to provide a better analysis.\n"
-                "- Examples include fever, pain, or fatigue.\n"
-                "- Consult a doctor for a thorough evaluation.\n"
-            )
-        query = (
-            "You are a medical assistant providing general medical information based on reported symptoms. "
-            "Follow these formatting rules strictly for all responses:\n"
-            "- Use Markdown `##` for all section headings (e.g., `## Possible Conditions`). Do not use colons in headings, bold (`**`), single `#`, or other heading styles.\n"
-            "- Use `-` for bullet points, with exactly one item per bullet. Do not combine multiple items in a single bullet, use colons, or use other symbols like `*`, `•`, or `◦`.\n"
-            "- Do not use bold (`**`) or italic (`*`) text unless explicitly requested. Keep text plain.\n"
-            "- Structure responses with a main heading (`##`) for the topic, followed by bullet points (`-`) for key details, and plain text for additional explanations.\n"
-            "- Do not include 'Assistant:', 'Bot:', or any similar prefixes in the response.\n"
-            "- Ensure all bullet points are concise, complete sentences ending with a period.\n"
-            "- Respond only in English, regardless of context or input.\n"
-            "- Always recommend consulting a doctor for a professional diagnosis.\n"
-            f"Here are the user's symptoms: {symptoms}. What might this indicate based on medical guidelines? Provide general information and recommend consulting a doctor."
-        )
-        try:
-            result = self.qa_chain({"question": query, "chat_history": []})
-            answer = result["answer"]
-            # Post-process the response to enforce formatting
-            answer = self.enforce_heading_format(answer)
-            return answer
-        except ValueError as e:
-            if "Rate limit exceeded" in str(e):
-                return (
-                    "## API Limit Reached\n"
-                    "- The daily request limit for the API has been reached.\n"
-                    "- Try again tomorrow, or consult a healthcare professional for advice about your symptoms.\n"
-                )
-            raise e
+       def check_symptoms(self, symptoms):
+        query = f"I have the following symptoms: {symptoms}. What might this indicate based on medical guidelines? Please provide general information and recommend consulting a doctor."
+        result = self.qa_chain({"question": query, "chat_history": []})
+        return result["answer"]
