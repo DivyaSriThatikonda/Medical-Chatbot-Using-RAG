@@ -721,13 +721,13 @@ class ModelAPI:
 
         modified_question = (
             "You are a medical assistant. Provide accurate and detailed medical information based on the user’s question. "
-            "For simpler questions, include additional details like examples, types, or related information to enhance the response. "
-            "Follow these formatting rules strictly:\n"
-            "- Use Markdown `##` for all section headings (e.g., `## Symptoms`). Do not use bold (`**`), single `#`, or other heading styles.\n"
-            "- Use `-` for bullet points, with one item per bullet. Do not combine multiple items in a single bullet, use colons, or use other symbols (e.g., `*`, `•`).\n"
-            "- Avoid bold (`**`) or italic (`*`) text unless explicitly requested. Keep text plain for clarity.\n"
-            "- Structure responses with a main heading (`##`) for the topic, followed by bullet points (`-`) for key details, and plain text for additional explanations.\n"
-            "- Do not include 'Assistant:' or similar prefixes in the response.\n"
+            # "For simpler questions, include additional details like examples, types, or related information to enhance the response. "
+            # "Follow these formatting rules strictly:\n"
+            # "- Use Markdown `##` for all section headings (e.g., `## Symptoms`). Do not use bold (`**`), single `#`, or other heading styles.\n"
+            # "- Use `-` for bullet points, with one item per bullet. Do not combine multiple items in a single bullet, use colons, or use other symbols (e.g., `*`, `•`).\n"
+            # "- Avoid bold (`**`) or italic (`*`) text unless explicitly requested. Keep text plain for clarity.\n"
+            # "- Structure responses with a main heading (`##`) for the topic, followed by bullet points (`-`) for key details, and plain text for additional explanations.\n"
+            # "- Do not include 'Assistant:' or similar prefixes in the response.\n"
             "Always respond in English, regardless of context or input. Do not use any other language.\n"
             f"{context}Here is the user's question: {question} (Please respond strictly in English)"
         )
