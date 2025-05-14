@@ -791,7 +791,6 @@ from langchain_openai import ChatOpenAI
 from langchain.chains import ConversationalRetrievalChain
 from dotenv import load_dotenv
 import os
-import re
 
 class ModelAPI:
     def __init__(self, vector_store):
@@ -896,8 +895,6 @@ class ModelAPI:
                     )
         return None
 
-   
-
     def get_response(self, question, chat_history):
         if self.is_greeting(question):
             return "Hello! I'm your medical assistant. How can I help you with your health questions today?"
@@ -930,12 +927,13 @@ class ModelAPI:
         modified_question = (
             "You are a medical assistant providing accurate and detailed medical information. "
             "Follow these formatting rules strictly for all responses:\n"
-            "- Use Markdown `##` for all section headings (e.g., `## Symptoms`). Do not use colons in headings, bold (`**`), single `#`, or other heading styles.\n"
-            "- Use `-` for bullet points, with exactly one item per bullet. Do not combine multiple items in a single bullet, use colons, or use other symbols like `*`, `•`, or `◦`.\n"
-            "- Do not use bold (`**`) or italic (`*`) text unless explicitly requested. Keep text plain.\n"
+            "- Use Markdown `##` for all section headings (e.g., `## Symptoms`). Do not use colons in headings (e.g., not `Symptoms:`), bold (`**`), single `#`, or other heading styles.\n"
+            "- Use `-` for bullet points, with exactly one item per bullet. Do not combine multiple items in a single bullet, use colons (e.g., not `- Item: description`), or use other symbols like `*`, `•`, or `◦`.\n"
+            "- Do not use bold (`**`) or italic (`*`) text unless explicitly requested by the user. Keep text plain.\n"
             "- Structure responses with a main heading (`##`) for the topic, followed by bullet points (`-`) for key details, and plain text for additional explanations.\n"
             "- Do not include 'Assistant:', 'Bot:', or any similar prefixes in the response.\n"
             "- Ensure all bullet points are concise, complete sentences ending with a period.\n"
+            "- Avoid common errors: do not use colons in headings or bullet points, do not combine multiple descriptions in one bullet, and do not use numbered lists or other bullet symbols.\n"
             "- Respond only in English, regardless of context or input.\n"
             "For simpler questions, include additional details like examples, types, or related information to enhance the response.\n"
             f"{context}Here is the user's question: {question}"
@@ -954,8 +952,6 @@ class ModelAPI:
                     "Would you like to ask about something else?"
                 )
 
-        
-
             # Cache the response
             self.response_cache[question_lower] = answer
             return answer
@@ -973,7 +969,37 @@ class ModelAPI:
                 )
             raise e
 
-       def check_symptoms(self, symptoms):
-        query = f"I have the following symptoms: {symptoms}. What might this indicate based on medical guidelines? Please provide general information and recommend consulting a doctor."
-        result = self.qa_chain({"question": query, "chat_history": []})
-        return result["answer"]
+    def check_symptoms(self, symptoms):
+        if not symptoms.strip() or symptoms.lower() in ["i don't feel well", "not feeling well"]:
+            return (
+                "## Symptom Information Needed\n"
+                "- Specific symptoms are needed to provide a better analysis.\n"
+                "- Examples include fever, pain, or fatigue.\n"
+                "- Consult a doctor for a thorough evaluation.\n"
+            )
+        query = (
+            "You are a medical assistant providing general medical information based on reported symptoms. "
+            "Follow these formatting rules strictly for all responses:\n"
+            "- Use Markdown `##` for all section headings (e.g., `## Possible Conditions`). Do not use colons in headings (e.g., not `Possible Conditions:`), bold (`**`), single `#`, or other heading styles.\n"
+            "- Use `-` for bullet points, with exactly one item per bullet. Do not combine multiple items in a single bullet, use colons (e.g., not `- Condition: description`), or use other symbols like `*`, `•`, or `◦`.\n"
+            "- Do not use bold (`**`) or italic (`*`) text unless explicitly requested by the user. Keep text plain.\n"
+            "- Structure responses with a main heading (`##`) for the topic, followed by bullet points (`-`) for key details, and plain text for additional explanations.\n"
+            "- Do not include 'Assistant:', 'Bot:', or any similar prefixes in the response.\n"
+            "- Ensure all bullet points are concise, complete sentences ending with a period.\n"
+            "- Avoid common errors: do not use colons in headings or bullet points, do not combine multiple descriptions in one bullet, and do not use numbered lists or other bullet symbols.\n"
+            "- Respond only in English, regardless of context or input.\n"
+            "- Always recommend consulting a doctor for a professional diagnosis.\n"
+            f"Here are the user's symptoms: {symptoms}. What might this indicate based on medical guidelines? Provide general information and recommend consulting a doctor."
+        )
+        try:
+            result = self.qa_chain({"question": query, "chat_history": []})
+            answer = result["answer"]
+            return answer
+        except ValueError as e:
+            if "Rate limit exceeded" in str(e):
+                return (
+                    "## API Limit Reached\n"
+                    "- The daily request limit for the API has been reached.\n"
+                    "- Try again tomorrow, or consult a healthcare professional for advice about your symptoms.\n"
+                )
+            raise e
