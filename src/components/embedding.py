@@ -63,7 +63,7 @@
 #             pinecone_api_key=os.getenv("PINECONE_API_KEY")
 #         )
 
-#Updated code to avoid data leaks
+#Updated code to avoid data leaks  and below is the final code 
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_pinecone import PineconeVectorStore
 from dotenv import load_dotenv
