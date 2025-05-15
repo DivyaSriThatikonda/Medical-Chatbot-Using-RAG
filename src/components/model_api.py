@@ -1799,18 +1799,27 @@
 #                     "- Local health clinics offer walk-in assessments.\n"
 #                 )
 #             raise e
-
 from langchain_openai import ChatOpenAI
 from langchain.chains import ConversationalRetrievalChain
 from dotenv import load_dotenv
 import os
+import logging
+
+# Setup logging for Streamlit Cloud
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 class ModelAPI:
     def __init__(self, vector_store):
         load_dotenv()
+        api_key = os.getenv("OPENROUTER_API_KEY")
+        if not api_key:
+            logger.error("OPENROUTER_API_KEY is not set in .env file")
+            raise ValueError("Missing OPENROUTER_API_KEY. Please set it in the .env file.")
+        
         self.llm = ChatOpenAI(
             model="deepseek/deepseek-chat:free",
-            openai_api_key=os.getenv("OPENROUTER_API_KEY"),
+            openai_api_key=api_key,
             openai_api_base="https://openrouter.ai/api/v1"
         )
         self.qa_chain = ConversationalRetrievalChain.from_llm(
@@ -1944,10 +1953,11 @@ class ModelAPI:
 
     def correct_spelling(self, text):
         """Correct common misspellings in the input text."""
+        if not text or not isinstance(text, str):
+            return text
         words = text.lower().split()
         corrected_words = []
         for word in words:
-            # Check if the word or a phrase containing it is in the spelling corrections
             corrected = self.spelling_corrections.get(word, word)
             for misspelling, correct in self.spelling_corrections.items():
                 if misspelling in word:
@@ -1958,7 +1968,6 @@ class ModelAPI:
 
     def is_greeting(self, question):
         question_lower = question.lower().strip()
-        # Dictionary of specific greetings and their tailored responses
         greeting_responses = {
             "good morning": "Good morning! How can I assist with your medical questions today?",
             "good afternoon": "Good afternoon! Ready to help with any health concerns you have.",
@@ -1967,20 +1976,16 @@ class ModelAPI:
             "thank you": "You're welcome! Happy to help with any more health questions.",
             "thanks": "You're welcome! Let me know if you have more medical queries."
         }
-        # Check for specific greetings
         for greeting, response in greeting_responses.items():
             if greeting in question_lower:
                 return response
-        # Generic greetings list
         generic_greetings = ["hello", "hi", "hey"]
         words = question_lower.split()
-        # Return generic response for generic greetings
         if any(word in generic_greetings for word in words):
             return "Hello! I'm your medical assistant. How can I help you with your health questions today?"
         return None
 
     def check_repetitive_question(self, question, chat_history):
-        """Check if the question is similar to a previous one in chat history."""
         question_lower = question.lower().strip()
         if "blood pressure" in question_lower and ("cause" in question_lower or "what causes" in question_lower):
             for prev_question, prev_answer in chat_history:
@@ -2000,6 +2005,17 @@ class ModelAPI:
         return None
 
     def get_response(self, question, chat_history):
+        # Validate input
+        if not question or not isinstance(question, str):
+            return (
+                "## Invalid Input\n"
+                "- The question provided is empty or invalid.\n"
+                "- Please enter a valid medical question.\n\n"
+                "## Additional Information\n"
+                "- Try questions like 'What is diabetes?' or 'What are flu symptoms?'.\n"
+                "- Contact support if the issue persists.\n"
+            )
+
         # Correct spelling in the question
         corrected_question = self.correct_spelling(question)
 
@@ -2033,21 +2049,19 @@ class ModelAPI:
             if "stress" in last_question.lower() and "manage" in question_lower:
                 context = f"Previous question: {last_question}\nPrevious answer: {last_answer}\n"
 
+        # Simplified prompt to reduce token usage
         modified_question = (
-            "You are a medical assistant providing accurate and detailed medical information. "
-            "Follow these formatting rules strictly for all responses:\n"
-            "- Use Markdown `##` for all section headings (e.g., `## Symptoms`). Do not use colons in headings (e.g., not `Symptoms:`), bold (`**`), single `#`, or other heading styles.\n"
-            "- Use `-` for bullet points, with exactly one item per bullet. Do not combine multiple items in a single bullet, use colons (e.g., not `- Item: description`), or use other symbols like `*`, `•`, or `◦`.\n"
-            "- Do not use bold (`**`) or italic (`*`) text unless explicitly requested by the user. Keep text plain.\n"
-            "- Structure responses with a main heading (`##`) for the topic, followed by bullet points (`-`) for key details, and plain text for additional explanations.\n"
-            "- Do not include 'Assistant:', 'Bot:', or any similar prefixes in the response.\n"
-            "- Ensure all bullet points are concise, complete sentences ending with a period.\n"
-            "- Avoid common errors: do not use colons in headings or bullet points, do not combine multiple descriptions in one bullet, and do not use numbered lists or other bullet symbols.\n"
-            "- Add some more medical information from your own knowledge and provide that information in a clear format to users.\n"
-            "- Ensure the response is formatted to be displayed in a justified text manner.\n"
-            "- Respond only in English, regardless of context or input.\n"
-            "For simpler questions, include additional details like examples, types, or related information to enhance the response.\n"
-            f"{context}Here is the user's question: {corrected_question}"
+            "You are a medical assistant providing accurate medical information. "
+            "Format responses as follows:\n"
+            "- Use `##` for section headings (e.g., `## Symptoms`). No colons, bold, or other heading styles.\n"
+            "- Use `-` for bullet points, one item per bullet, complete sentences, no colons or other symbols.\n"
+            "- No bold or italic text unless requested. Keep text plain.\n"
+            "- Structure: main heading (`##`), bullet points (`-`), plain text explanations.\n"
+            "- No 'Assistant:' or similar prefixes.\n"
+            "- Add 2-3 extra medical facts under `## Additional Information`.\n"
+            "- Ensure justified text compatibility.\n"
+            "- Respond in English only.\n"
+            f"{context}Question: {corrected_question}"
         )
         try:
             result = self.qa_chain({"question": modified_question, "chat_history": chat_history})
@@ -2070,7 +2084,8 @@ class ModelAPI:
             self.response_cache[question_lower] = answer
             return answer
         except ValueError as e:
-            if "Rate limit exceeded" in str(e):
+            logger.error(f"API error in get_response: {str(e)}")
+            if "rate limit" in str(e).lower():
                 if question_lower in self.fallback_responses:
                     response = self.fallback_responses[question_lower]
                     self.response_cache[question_lower] = response
@@ -2078,15 +2093,35 @@ class ModelAPI:
                 return (
                     "## API Limit Reached\n"
                     "- The daily request limit for the API has been reached.\n"
-                    "- Try common questions like flu symptoms, high blood pressure causes, anemia, heart attack symptoms, or kidney stones.\n"
-                    "- Wait until tomorrow when the API limit resets, or consult a healthcare professional for immediate advice.\n\n"
+                    "- Try common questions like flu symptoms or high blood pressure causes.\n"
+                    "- Wait until tomorrow or consult a healthcare professional.\n\n"
                     "## Additional Information\n"
-                    "- Many pharmacies offer free health screenings.\n"
+                    "- Pharmacies offer free health screenings.\n"
                     "- Emergency services are available for urgent concerns.\n"
                 )
-            raise e
+            return (
+                "## API Error\n"
+                "- An error occurred while contacting the medical database.\n"
+                "- Please try again later or with a different question.\n"
+                "- Consult a healthcare professional for urgent needs.\n\n"
+                "## Additional Information\n"
+                "- Check your internet connection.\n"
+                "- Contact support if the issue persists.\n"
+            )
 
     def check_symptoms(self, symptoms):
+        # Validate input
+        if not symptoms or not isinstance(symptoms, str):
+            return (
+                "**Symptom Information Needed**\n"
+                "- Specific symptoms are needed to provide a better analysis.\n"
+                "- Examples include fever, pain, or fatigue.\n"
+                "- Consult a doctor for a thorough evaluation.\n\n"
+                "## Additional Information\n"
+                "- Keeping a symptom diary can help doctors diagnose issues.\n"
+                "- Urgent symptoms like chest pain require immediate attention.\n"
+            )
+
         # Correct spelling in the symptoms
         corrected_symptoms = self.correct_spelling(symptoms)
 
@@ -2100,34 +2135,42 @@ class ModelAPI:
                 "- Keeping a symptom diary can help doctors diagnose issues.\n"
                 "- Urgent symptoms like chest pain require immediate attention.\n"
             )
+
         query = (
-            "You are a medical assistant providing general medical information based on reported symptoms. "
-            "Follow these formatting rules strictly for all responses:\n"
-            "- For the first section heading, use `**Possible Conditions**` (bolded) instead of `## Possible Conditions`. Use `##` for all subsequent section headings (e.g., `## Recommendations`). Do not use colons in headings (e.g., not `Possible Conditions:`), single `#`, or other heading styles.\n"
-            "- Use `-` for bullet points, with exactly one item per bullet. Do not combine multiple items in a single bullet, use colons (e.g., not `- Condition: description`), or use other symbols like `*`, `•`, or `◦`.\n"
-            "- Do not use bold (`**`) or italic (`*`) text unless explicitly requested by the user, except for the `**Possible Conditions**` heading.\n"
-            "- Structure responses with `**Possible Conditions**` as the first heading, followed by bullet points (`-`) for key details, subsequent headings with `##`, and plain text for additional explanations.\n"
-            "- Do not include 'Assistant:', 'Bot:', or any similar prefixes in the response.\n"
-            "- Ensure all bullet points are concise, complete sentences ending with a period.\n"
-            "- Avoid common errors: do not use colons in headings or bullet points, do not combine multiple descriptions in one bullet, and do not use numbered lists or other bullet symbols.\n"
-            "- Add some more medical information from your own knowledge and provide that information in a clear format to users.\n"
-            "- Ensure the response is formatted to be displayed in a justified text manner.\n"
-            "- Respond only in English, regardless of context or input.\n"
-            "- Always recommend consulting a doctor for a professional diagnosis.\n"
-            f"Here are the user's symptoms: {corrected_symptoms}. What might this indicate based on medical guidelines? Provide general information and recommend consulting a doctor."
+            "You are a medical assistant providing general medical information based on symptoms. "
+            "Format responses as follows:\n"
+            "- First heading: `**Possible Conditions**` (bolded). Subsequent headings: `##` (e.g., `## Recommendations`).\n"
+            "- Use `-` for bullet points, one item per bullet, complete sentences, no colons or other symbols.\n"
+            "- No bold or italic except for `**Possible Conditions**` unless requested.\n"
+            "- Structure: `**Possible Conditions**`, bullet points, `##` headings, plain text explanations.\n"
+            "- No 'Assistant:' or similar prefixes.\n"
+            "- Add 2-3 extra medical facts under `## Additional Information`.\n"
+            "- Ensure justified text compatibility.\n"
+            "- Respond in English only.\n"
+            "- Always recommend consulting a doctor.\n"
+            f"Symptoms: {corrected_symptoms}. Provide general information and recommend consulting a doctor."
         )
         try:
             result = self.qa_chain({"question": query, "chat_history": []})
             answer = result["answer"]
             return answer
         except ValueError as e:
-            if "Rate limit exceeded" in str(e):
+            logger.error(f"API error in check_symptoms: {str(e)}")
+            if "rate limit" in str(e).lower():
                 return (
                     "**API Limit Reached**\n"
                     "- The daily request limit for the API has been reached.\n"
-                    "- Try again tomorrow, or consult a healthcare professional for advice about your symptoms.\n\n"
+                    "- Try again tomorrow or consult a healthcare professional.\n\n"
                     "## Additional Information\n"
-                    "- Telemedicine services can provide quick consultations.\n"
-                    "- Local health clinics offer walk-in assessments.\n"
+                    "- Telemedicine services offer quick consultations.\n"
+                    "- Local health clinics provide walk-in assessments.\n"
                 )
-            raise e
+            return (
+                "**API Error**\n"
+                "- An error occurred while analyzing symptoms.\n"
+                "- Please try again later or with different symptoms.\n"
+                "- Consult a healthcare professional for urgent needs.\n\n"
+                "## Additional Information\n"
+                "- Check your internet connection.\n"
+                "- Contact support if the issue persists.\n"
+            )
