@@ -1799,338 +1799,6 @@
 #                     "- Local health clinics offer walk-in assessments.\n"
 #                 )
 #             raise e
-from langchain_openai import ChatOpenAI
-from langchain.chains import ConversationalRetrievalChain
-from dotenv import load_dotenv
-import os
-
-class ModelAPI:
-    def __init__(self, vector_store):
-        load_dotenv()
-        self.llm = ChatOpenAI(
-            model="deepseek/deepseek-chat:free",
-            openai_api_key=os.getenv("OPENROUTER_API_KEY"),
-            openai_api_base="https://openrouter.ai/api/v1"
-        )
-        self.qa_chain = ConversationalRetrievalChain.from_llm(
-            llm=self.llm,
-            retriever=vector_store.as_retriever(),
-            return_source_documents=True
-        )
-        # Cache for responses to reduce API calls
-        self.response_cache = {}
-        # Fallback responses for common questions when API limit is reached
-        self.fallback_responses = {
-            "what are the symptoms of the flu?": (
-                "## Symptoms of the Flu\n"
-                "- Fever often high, 100°F to 104°F or higher.\n"
-                "- Chills and sweats.\n"
-                "- Cough usually dry.\n"
-                "- Sore throat.\n"
-                "- Muscle aches or body aches.\n"
-                "- Headache.\n"
-                "- Fatigue or weakness.\n"
-                "- Runny or stuffy nose.\n"
-                "- Nausea, vomiting, or diarrhea more common in children.\n\n"
-                "## Additional Information\n"
-                "- Influenza affects 5-20% of the population annually.\n"
-                "- Antiviral medications can reduce severity if taken early.\n"
-                "Symptoms often come on suddenly and can range from mild to severe. If you suspect you have the flu, especially if you are at high risk for complications, consult a healthcare provider."
-            ),
-            "what causes high blood pressure?": (
-                "## Causes of High Blood Pressure\n"
-                "- Lifestyle factors like poor diet with high salt intake, obesity, lack of physical activity, excessive alcohol consumption, and smoking.\n"
-                "- Underlying medical conditions such as diabetes, kidney disease, and hormonal disorders.\n"
-                "- Genetic predisposition where a family history of hypertension increases risk.\n"
-                "- Stress where chronic stress contributes to elevated blood pressure.\n"
-                "- Aging as blood pressure often increases with age.\n\n"
-                "## Additional Information\n"
-                "- Hypertension affects over 1 billion people globally.\n"
-                "- Regular monitoring can prevent complications like heart attack.\n"
-                "Treatment often involves lifestyle changes and medications if needed. Would you like to know more about managing high blood pressure?"
-            ),
-            "what is anemia?": (
-                "## What is Anemia\n"
-                "- Anemia is a condition with abnormally low levels of healthy red blood cells or hemoglobin, which carries oxygen to tissues.\n"
-                "- Fatigue or weakness.\n"
-                "- Shortness of breath.\n"
-                "- Pale skin.\n"
-                "- Dizziness or lightheadedness.\n\n"
-                "## Types of Anemia\n"
-                "- Iron-deficiency anemia caused by lack of iron, often due to poor diet or blood loss.\n"
-                "- Vitamin B12 deficiency anemia due to insufficient B12, often linked to diet or absorption issues.\n"
-                "- Sickle cell anemia, a genetic condition where red blood cells are abnormally shaped.\n\n"
-                "## Additional Information\n"
-                "- Anemia affects about 25% of the global population.\n"
-                "- Blood tests like CBC can confirm diagnosis.\n"
-                "If you suspect anemia, a doctor can diagnose it with a blood test and recommend treatment like iron supplements or dietary changes."
-            ),
-            "what are symptoms of heart attack?": (
-                "## Symptoms of a Heart Attack\n"
-                "- Chest pain or discomfort often described as pressure, squeezing, or pain in the center or left side of the chest, lasting minutes or recurring.\n"
-                "- Upper body discomfort in one or both arms, jaw, neck, back, or stomach.\n"
-                "- Shortness of breath with or without chest pain.\n"
-                "- Cold sweat, nausea, or lightheadedness accompanying chest discomfort.\n\n"
-                "## Additional Information\n"
-                "- Heart attacks are a leading cause of death worldwide.\n"
-                "- Immediate treatment like aspirin can improve outcomes.\n"
-                "If you experience these symptoms, especially chest pain or shortness of breath, seek emergency medical attention immediately."
-            ),
-            "what causes kidney stones?": (
-                "## Causes of Kidney Stones\n"
-                "- Dehydration where not drinking enough water leads to concentrated urine, increasing stone formation risk.\n"
-                "- Diet with high intake of sodium, oxalate found in foods like spinach, or animal protein.\n"
-                "- Medical conditions like hyperparathyroidism, gout, or urinary tract infections.\n"
-                "- Family history with a genetic predisposition to kidney stones.\n"
-                "- Obesity where higher body weight increases risk.\n"
-                "- Certain medications like some diuretics or calcium-based antacids.\n\n"
-                "## Additional Information\n"
-                "- Kidney stones affect about 10% of people in their lifetime.\n"
-                "- Imaging tests like CT scans can detect stones.\n"
-                "Kidney stones can be made of different materials like calcium oxalate or uric acid, depending on the cause."
-            ),
-            "how can i prevent them?": (
-                "## Preventing Kidney Stones\n"
-                "- Stay hydrated by drinking plenty of water, aiming for 2-3 liters daily to dilute urine.\n"
-                "- Adjust diet by reducing sodium, oxalate-rich foods like spinach, and animal protein, and eating more citrus fruits containing citrate to prevent stones.\n"
-                "- Maintain a healthy weight as obesity increases risk, so regular exercise and a balanced diet help.\n"
-                "- Monitor medical conditions like gout or urinary tract infections that contribute to stones.\n"
-                "- Consult a doctor if you have a history of kidney stones for specific dietary changes or medications.\n\n"
-                "## Additional Information\n"
-                "- Citrate supplements may reduce stone formation.\n"
-                "- Regular check-ups can catch stones early.\n"
-            )
-        }
-        # Dictionary for common medical misspellings
-        self.spelling_corrections = {
-            "diabtes": "diabetes",
-            "diabetis": "diabetes",
-            "fevr": "fever",
-            "feaver": "fever",
-            "coff": "cough",
-            "coughh": "cough",
-            "sorethroat": "sore throat",
-            "sorthroat": "sore throat",
-            "hedache": "headache",
-            "headach": "headache",
-            "vertgo": "vertigo",
-            "vertigo": "vertigo",
-            "hypothyrodism": "hypothyroidism",
-            "hypothyroid": "hypothyroidism",
-            "asma": "asthma",
-            "astma": "asthma",
-            "chrone": "crohn",
-            "crohns": "crohn",
-            "ulcerativecolitis": "ulcerative colitis",
-            "ulcerativ colitis": "ulcerative colitis",
-            "join pain": "joint pain",
-            "jont pain": "joint pain",
-            "pheochromcytoma": "pheochromocytoma",
-            "pheochromocytma": "pheochromocytoma",
-            "fatige": "fatigue",
-            "fatgue": "fatigue",
-            "diziness": "dizziness",
-            "dizzyness": "dizziness",
-            "nausia": "nausea",
-            "nauseau": "nausea",
-            "shortnes of breath": "shortness of breath",
-            "shortnessofbreath": "shortness of breath",
-            "numness": "numbness",
-            "numbnes": "numbness",
-            "blured vision": "blurred vision",
-            "blur vision": "blurred vision"
-        }
-
-    def correct_spelling(self, text):
-        """Correct common misspellings in the input text."""
-        words = text.lower().split()
-        corrected_words = []
-        for word in words:
-            # Check if the word or a phrase containing it is in the spelling corrections
-            corrected = self.spelling_corrections.get(word, word)
-            for misspelling, correct in self.spelling_corrections.items():
-                if misspelling in word:
-                    corrected = word.replace(misspelling, correct)
-                    break
-            corrected_words.append(corrected)
-        return " ".join(corrected_words)
-
-    def is_greeting(self, question):
-        question_lower = question.lower().strip()
-        # Dictionary of specific greetings and their tailored responses
-        greeting_responses = {
-            "good morning": "Good morning! How can I assist with your medical questions today?",
-            "good afternoon": "Good afternoon! Ready to help with any health concerns you have.",
-            "good evening": "Good evening! Here to answer your medical questions before you wind down.",
-            "good night": "Good night! Feel free to ask any medical questions before you rest.",
-            "thank you": "You're welcome! Happy to help with any more health questions.",
-            "thanks": "You're welcome! Let me know if you have more medical queries."
-        }
-        # Check for specific greetings
-        for greeting, response in greeting_responses.items():
-            if greeting in question_lower:
-                return response
-        # Generic greetings list
-        generic_greetings = ["hello", "hi", "hey"]
-        words = question_lower.split()
-        # Return generic response for generic greetings
-        if any(word in generic_greetings for word in words):
-            return "Hello! I'm your medical assistant. How can I help you with your health questions today?"
-        return None
-
-    def check_repetitive_question(self, question, chat_history):
-        """Check if the question is similar to a previous one in chat history."""
-        question_lower = question.lower().strip()
-        if "blood pressure" in question_lower and ("cause" in question_lower or "what causes" in question_lower):
-            for prev_question, prev_answer in chat_history:
-                prev_question_lower = prev_question.lower().strip()
-                if "blood pressure" in prev_question_lower and (
-                        "cause" in prev_question_lower or "what causes" in prev_question_lower):
-                    return (
-                        "## Recap of High Blood Pressure Causes\n"
-                        "- Lifestyle factors like high salt intake, obesity, and smoking.\n"
-                        "- Medical conditions such as kidney disease or diabetes.\n"
-                        "- Genetic predisposition, stress, and aging.\n\n"
-                        "## Additional Information\n"
-                        "- Blood pressure screenings are recommended annually.\n"
-                        "- Medications like ACE inhibitors can manage hypertension.\n"
-                        "Would you like to know more about managing high blood pressure, or do you have a different question?"
-                    )
-        return None
-
-    def get_response(self, question, chat_history):
-        # Correct spelling in the question
-        corrected_question = self.correct_spelling(question)
-
-        # Check for greetings first
-        greeting_response = self.is_greeting(corrected_question)
-        if greeting_response:
-            return greeting_response
-
-        # Normalize question for cache and fallback lookup
-        question_lower = corrected_question.lower().strip()
-
-        # Check for repetitive questions
-        repetitive_response = self.check_repetitive_question(corrected_question, chat_history)
-        if repetitive_response:
-            return repetitive_response
-
-        # Check cache for previous response
-        if question_lower in self.response_cache:
-            return self.response_cache[question_lower]
-
-        # Check if question matches a fallback response
-        if question_lower in self.fallback_responses:
-            response = self.fallback_responses[question_lower]
-            self.response_cache[question_lower] = response
-            return response
-
-        # Add context from recent chat history
-        context = ""
-        if chat_history:
-            last_question, last_answer = chat_history[-1]
-            if "stress" in last_question.lower() and "manage" in question_lower:
-                context = f"Previous question: {last_question}\nPrevious answer: {last_answer}\n"
-
-        modified_question = (
-            "You are a medical assistant providing accurate and detailed medical information. "
-            "Follow these formatting rules strictly for all responses:\n"
-            "- Use Markdown `##` for all section headings (e.g., `## Symptoms`). Do not use colons in headings (e.g., not `Symptoms:`), bold (`**`), single `#`, or other heading styles.\n"
-            "- Use `-` for bullet points, with exactly one item per bullet. Do not combine multiple items in a single bullet, use colons (e.g., not `- Item: description`), or use other symbols like `*`, `•`, or `◦`.\n"
-            "- Do not use bold (`**`) or italic (`*`) text unless explicitly requested by the user. Keep text plain.\n"
-            "- Structure responses with a main heading (`##`) for the topic, followed by bullet points (`-`) for key details, and plain text for additional explanations.\n"
-            "- Do not include 'Assistant:', 'Bot:', or any similar prefixes in the response.\n"
-            "- Ensure all bullet points are concise, complete sentences ending with a period.\n"
-            "- Avoid common errors: do not use colons in headings or bullet points, do not combine multiple descriptions in one bullet, and do not use numbered lists or other bullet symbols.\n"
-            "- Add some more medical information from your own knowledge and provide that information in a clear format to users.\n"
-            "- Ensure the response is formatted to be displayed in a justified text manner.\n"
-            "- Respond only in English, regardless of context or input.\n"
-            "For simpler questions, include additional details like examples, types, or related information to enhance the response.\n"
-            f"{context}Here is the user's question: {corrected_question}"
-        )
-        try:
-            result = self.qa_chain({"question": modified_question, "chat_history": chat_history})
-            answer = result["answer"]
-
-            # Check if the vector store lacks information
-            if "provided context does not contain information" in answer.lower() or "not found in the context" in answer.lower():
-                return (
-                    "## Information Not Available\n"
-                    "- The medical database does not contain details about this topic.\n"
-                    "- This question appears outside the scope of available information.\n"
-                    "- Consult a reliable medical source or healthcare professional for accurate information.\n\n"
-                    "## Additional Information\n"
-                    "- Online medical resources like WebMD can provide general guidance.\n"
-                    "- Local clinics offer consultations for personalized advice.\n"
-                    "Would you like to ask about something else?"
-                )
-
-            # Cache the response
-            self.response_cache[question_lower] = answer
-            return answer
-        except ValueError as e:
-            if "Rate limit exceeded" in str(e):
-                if question_lower in self.fallback_responses:
-                    response = self.fallback_responses[question_lower]
-                    self.response_cache[question_lower] = response
-                    return response
-                return (
-                    "## API Limit Reached\n"
-                    "- The daily request limit for the API has been reached.\n"
-                    "- Try common questions like flu symptoms, high blood pressure causes, anemia, heart attack symptoms, or kidney stones.\n"
-                    "- Wait until tomorrow when the API limit resets, or consult a healthcare professional for immediate advice.\n\n"
-                    "## Additional Information\n"
-                    "- Many pharmacies offer free health screenings.\n"
-                    "- Emergency services are available for urgent concerns.\n"
-                )
-            raise e
-
-    def check_symptoms(self, symptoms):
-        # Correct spelling in the symptoms
-        corrected_symptoms = self.correct_spelling(symptoms)
-
-        if not corrected_symptoms.strip() or corrected_symptoms.lower() in ["i don't feel well", "not feeling well"]:
-            return (
-                "**Symptom Information Needed**\n"
-                "- Specific symptoms are needed to provide a better analysis.\n"
-                "- Examples include fever, pain, or fatigue.\n"
-                "- Consult a doctor for a thorough evaluation.\n\n"
-                "## Additional Information\n"
-                "- Keeping a symptom diary can help doctors diagnose issues.\n"
-                "- Urgent symptoms like chest pain require immediate attention.\n"
-            )
-        query = (
-            "You are a medical assistant providing general medical information based on reported symptoms. "
-            "Follow these formatting rules strictly for all responses:\n"
-            "- For the first section heading, use `**Possible Conditions**` (bolded) instead of `## Possible Conditions`. Use `##` for all subsequent section headings (e.g., `## Recommendations`). Do not use colons in headings (e.g., not `Possible Conditions:`), single `#`, or other heading styles.\n"
-            "- Use `-` for bullet points, with exactly one item per bullet. Do not combine multiple items in a single bullet, use colons (e.g., not `- Condition: description`), or use other symbols like `*`, `•`, or `◦`.\n"
-            "- Do not use bold (`**`) or italic (`*`) text unless explicitly requested by the user, except for the `**Possible Conditions**` heading.\n"
-            "- Structure responses with `**Possible Conditions**` as the first heading, followed by bullet points (`-`) for key details, subsequent headings with `##`, and plain text for additional explanations.\n"
-            "- Do not include 'Assistant:', 'Bot:', or any similar prefixes in the response.\n"
-            "- Ensure all bullet points are concise, complete sentences ending with a period.\n"
-            "- Avoid common errors: do not use colons in headings or bullet points, do not combine multiple descriptions in one bullet, and do not use numbered lists or other bullet symbols.\n"
-            "- Add some more medical information from your own knowledge and provide that information in a clear format to users.\n"
-            "- Ensure the response is formatted to be displayed in a justified text manner.\n"
-            "- Respond only in English, regardless of context or input.\n"
-            "- Always recommend consulting a doctor for a professional diagnosis.\n"
-            f"Here are the user's symptoms: {corrected_symptoms}. What might this indicate based on medical guidelines? Provide general information and recommend consulting a doctor."
-        )
-        try:
-            result = self.qa_chain({"question": query, "chat_history": []})
-            answer = result["answer"]
-            return answer
-        except ValueError as e:
-            if "Rate limit exceeded" in str(e):
-                return (
-                    "**API Limit Reached**\n"
-                    "- The daily request limit for the API has been reached.\n"
-                    "- Try again tomorrow, or consult a healthcare professional for advice about your symptoms.\n\n"
-                    "## Additional Information\n"
-                    "- Telemedicine services can provide quick consultations.\n"
-                    "- Local health clinics offer walk-in assessments.\n"
-                )
-            raise e
-
 # from langchain_openai import ChatOpenAI
 # from langchain.chains import ConversationalRetrievalChain
 # from dotenv import load_dotenv
@@ -2462,3 +2130,285 @@ class ModelAPI:
 #                     "- Local health clinics offer walk-in assessments.\n"
 #                 )
 #             raise e
+
+from langchain_openai import ChatOpenAI
+from langchain.chains import ConversationalRetrievalChain
+from dotenv import load_dotenv
+import os
+import logging
+
+# Setup logging for Streamlit Cloud
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+class ModelAPI:
+    def __init__(self, vector_store):
+        load_dotenv()
+        api_key = os.getenv("OPENROUTER_API_KEY")
+        if not api_key:
+            logger.error("OPENROUTER_API_KEY is not set in .env file")
+            raise ValueError("Missing OPENROUTER_API_KEY. Please set it in the .env file.")
+        
+        self.llm = ChatOpenAI(
+            model="deepseek/deepseek-chat:free",
+            openai_api_key=api_key,
+            openai_api_base="https://openrouter.ai/api/v1"
+        )
+        self.qa_chain = ConversationalRetrievalChain.from_llm(
+            llm=self.llm,
+            retriever=vector_store.as_retriever(),
+            return_source_documents=True
+        )
+        # Cache for responses to reduce API calls
+        self.response_cache = {}
+        # Fallback responses for common questions
+        self.fallback_responses = {
+            "what are the symptoms of the flu?": (
+                "## Symptoms of the Flu\n"
+                "- Fever often high, 100°F to 104°F or higher.\n"
+                "- Chills and sweats.\n"
+                "- Cough usually dry.\n"
+                "- Sore throat.\n"
+                "- Muscle aches or body aches.\n"
+                "- Headache.\n"
+                "- Fatigue or weakness.\n"
+                "- Runny or stuffy nose.\n"
+                "- Nausea, vomiting, or diarrhea more common in children.\n\n"
+                "## Additional Information\n"
+                "- Influenza affects 5-20% of the population annually.\n"
+                "- Antiviral medications can reduce severity if taken early.\n"
+                "Symptoms often come on suddenly and can range from mild to severe. If you suspect you have the flu, especially if you are at high risk for complications, consult a healthcare provider."
+            ),
+            "what causes high blood pressure?": (
+                "## Causes of High Blood Pressure\n"
+                "- Lifestyle factors like poor diet with high salt intake, obesity, lack of physical activity, excessive alcohol consumption, and smoking.\n"
+                "- Underlying medical conditions such as diabetes, kidney disease, and hormonal disorders.\n"
+                "- Genetic predisposition where a family history of hypertension increases risk.\n"
+                "- Stress where chronic stress contributes to elevated blood pressure.\n"
+                "- Aging as blood pressure often increases with age.\n\n"
+                "## Additional Information\n"
+                "- Hypertension affects over 1 billion people globally.\n"
+                "- Regular monitoring can prevent complications like heart attack.\n"
+                "Treatment often involves lifestyle changes and medications if needed. Would you like to know more about managing high blood pressure?"
+            ),
+            "what is anemia?": (
+                "## What is Anemia\n"
+                "- Anemia is a condition with abnormally low levels of healthy red blood cells or hemoglobin, which carries oxygen to tissues.\n"
+                "- Fatigue or weakness.\n"
+                "- Shortness of breath.\n"
+                "- Pale skin.\n"
+                "- Dizziness or lightheadedness.\n\n"
+                "## Types of Anemia\n"
+                "- Iron-deficiency anemia caused by lack of iron, often due to poor diet or blood loss.\n"
+                "- Vitamin B12 deficiency anemia due to insufficient B12, often linked to diet or absorption issues.\n"
+                "- Sickle cell anemia, a genetic condition where red blood cells are abnormally shaped.\n\n"
+                "## Additional Information\n"
+                "- Anemia affects about 25% of the global population.\n"
+                "- Blood tests like CBC can confirm diagnosis.\n"
+                "If you suspect anemia, a doctor can diagnose it with a blood test and recommend treatment like iron supplements or dietary changes."
+            ),
+            "what are symptoms of heart attack?": (
+                "## Symptoms of a Heart Attack\n"
+                "- Chest pain or discomfort often described as pressure, squeezing, or pain in the center or left side of the chest, lasting minutes or recurring.\n"
+                "- Upper body discomfort in one or both arms, jaw, neck, back, or stomach.\n"
+                "- Shortness of breath with or without chest pain.\n"
+                "- Cold sweat, nausea, or lightheadedness accompanying chest discomfort.\n\n"
+                "## Additional Information\n"
+                "- Heart attacks are a leading cause of death worldwide.\n"
+                "- Immediate treatment like aspirin can improve outcomes.\n"
+                "If you experience these symptoms, especially chest pain or shortness of breath, seek emergency medical attention immediately."
+            ),
+            "what causes kidney stones?": (
+                "## Causes of Kidney Stones\n"
+                "- Dehydration where not drinking enough water leads to concentrated urine, increasing stone formation risk.\n"
+                "- Diet with high intake of sodium, oxalate found in foods like spinach, or animal protein.\n"
+                "- Medical conditions like hyperparathyroidism, gout, or urinary tract infections.\n"
+                "- Family history with a genetic predisposition to kidney stones.\n"
+                "- Obesity where higher body weight increases risk.\n"
+                "- Certain medications like some diuretics or calcium-based antacids.\n\n"
+                "## Additional Information\n"
+                "- Kidney stones affect about 10% of people in their lifetime.\n"
+                "- Imaging tests like CT scans can detect stones.\n"
+                "Kidney stones can be made of different materials like calcium oxalate or uric acid, depending on the cause."
+            ),
+            "how can i prevent them?": (
+                "## Preventing Kidney Stones\n"
+                "- Stay hydrated by drinking plenty of water, aiming for 2-3 liters daily to dilute urine.\n"
+                "- Adjust diet by reducing sodium, oxalate-rich foods like spinach, and animal protein, and eating more citrus fruits containing citrate to prevent stones.\n"
+                "- Maintain a healthy weight as obesity increases risk, so regular exercise and a balanced diet help.\n"
+                "- Monitor medical conditions like gout or urinary tract infections that contribute to stones.\n"
+                "- Consult a doctor if you have a history of kidney stones for specific dietary changes or medications.\n\n"
+                "## Additional Information\n"
+                "- Citrate supplements may reduce stone formation.\n"
+                "- Regular check-ups can catch stones early.\n"
+            )
+        }
+
+    def is_greeting(self, question):
+        question_lower = question.lower().strip()
+        greeting_responses = {
+            "good morning": "Good morning! How can I assist with your medical questions today?",
+            "good afternoon": "Good afternoon! Ready to help with any health concerns you have.",
+            "good evening": "Good evening! Here to answer your medical questions before you wind down.",
+            "good night": "Good night! Feel free to ask any medical questions before you rest.",
+            "thank you": "You're welcome! Happy to help with any more health questions.",
+            "thanks": "You're welcome! Let me know if you have more medical queries."
+        }
+        for greeting, response in greeting_responses.items():
+            if greeting in question_lower:
+                return response
+        generic_greetings = ["hello", "hi", "hey"]
+        words = question_lower.split()
+        if any(word in generic_greetings for word in words):
+            return "Hello! I'm your medical assistant. How can I help you with your health questions today?"
+        return None
+
+    def check_repetitive_question(self, question, chat_history):
+        question_lower = question.lower().strip()
+        if "blood pressure" in question_lower and ("cause" in question_lower or "what causes" in question_lower):
+            for prev_question, prev_answer in chat_history:
+                prev_question_lower = prev_question.lower().strip()
+                if "blood pressure" in prev_question_lower and (
+                        "cause" in prev_question_lower or "what causes" in prev_question_lower):
+                    return (
+                        "## Recap of High Blood Pressure Causes\n"
+                        "- Lifestyle factors like high salt intake, obesity, and smoking.\n"
+                        "- Medical conditions such as kidney disease or diabetes.\n"
+                        "- Genetic predisposition, stress, and aging.\n\n"
+                        "## Additional Information\n"
+                        "- Blood pressure screenings are recommended annually.\n"
+                        "- Medications like ACE inhibitors can manage hypertension.\n"
+                        "Would you like to know more about managing high blood pressure, or do you have a different question?"
+                    )
+        return None
+
+    def get_response(self, question, chat_history):
+        # Check for greetings first
+        greeting_response = self.is_greeting(question)
+        if greeting_response:
+            return greeting_response
+
+        # Normalize question for cache and fallback lookup
+        question_lower = question.lower().strip()
+
+        # Check for repetitive questions
+        repetitive_response = self.check_repetitive_question(question, chat_history)
+        if repetitive_response:
+            return repetitive_response
+
+        # Check cache for previous response
+        if question_lower in self.response_cache:
+            return self.response_cache[question_lower]
+
+        # Check if question matches a fallback response
+        if question_lower in self.fallback_responses:
+            response = self.fallback_responses[question_lower]
+            self.response_cache[question_lower] = response
+            return response
+
+        # Add context from recent chat history
+        context = ""
+        if chat_history:
+            last_question, last_answer = chat_history[-1]
+            if "stress" in last_question.lower() and "manage" in question_lower:
+                context = f"Previous question: {last_question}\nPrevious answer: {last_answer}\n"
+
+        modified_question = (
+            "You are a medical assistant providing accurate and detailed medical information. "
+            "Follow these formatting rules strictly for all responses:\n"
+            "- Use Markdown `##` for all section headings (e.g., `## Symptoms`). Headings must be left-aligned with no indentation or centering.\n"
+            "- Do not use colons in headings (e.g., not `Symptoms:`), bold (`**`), single `#`, or other heading styles.\n"
+            "- Use `-` for bullet points, with exactly one item per bullet. Do not combine multiple items in a single bullet, use colons (e.g., not `- Item: description`), or use other symbols like `*`, `•`, or `◦`.\n"
+            "- Do not use bold (`**`) or italic (`*`) text unless explicitly requested by the user. Keep text plain.\n"
+            "- Structure responses with a main heading (`##`) for the topic, followed by bullet points (`-`) for key details, and plain text for additional explanations.\n"
+            "- Do not include 'Assistant:', 'Bot:', or any similar prefixes in the response.\n"
+            "- Ensure all bullet points are concise, complete sentences ending with a period.\n"
+            "- Avoid common errors: do not use colons in headings or bullet points, do not combine multiple descriptions in one bullet, and do not use numbered lists or other bullet symbols.\n"
+            "- Use the user's exact input without correcting spellings, even if incorrect (e.g., 'diabtes' stays 'diabtes').\n"
+            "- Add some more medical information from your own knowledge and provide that information in a clear format to users.\n"
+            "- Ensure the response is formatted to be displayed in a justified text manner, with headings left-aligned.\n"
+            "- Respond only in English, regardless of context or input.\n"
+            "- For simpler questions, include additional details like examples, types, or related information to enhance the response.\n"
+            f"{context}Here is the user's question: {question}"
+        )
+        try:
+            result = self.qa_chain({"question": modified_question, "chat_history": chat_history})
+            answer = result["answer"]
+
+            # Check if the vector store lacks information
+            if "provided context does not contain information" in answer.lower() or "not found in the context" in answer.lower():
+                return (
+                    "## Information Not Available\n"
+                    "- The medical database does not contain details about this topic.\n"
+                    "- This question appears outside the scope of available information.\n"
+                    "- Consult a reliable medical source or healthcare professional for accurate information.\n\n"
+                    "## Additional Information\n"
+                    "- Online medical resources like WebMD can provide general guidance.\n"
+                    "- Local clinics offer consultations for personalized advice.\n"
+                    "Would you like to ask about something else?"
+                )
+
+            # Cache the response
+            self.response_cache[question_lower] = answer
+            return answer
+        except ValueError as e:
+            logger.error(f"API error in get_response: {str(e)}")
+            error_str = str(e).lower()
+            if "no instances available" in error_str or "503" in error_str:
+                return (
+                    "## Model Unavailable\n"
+                    "- The medical database is temporarily unavailable due to high demand.\n"
+                    "- Try again later or with a different question.\n"
+                    "- Consult a healthcare professional for urgent needs.\n\n"
+                    "## Additional Information\n"
+                    "- Free models may have limited availability.\n"
+                    "- Check OpenRouter.ai ...(line truncated)
+            raise e
+
+    def check_symptoms(self, symptoms):
+        if not symptoms.strip() or symptoms.lower() in ["i don't feel well", "not feeling well"]:
+            return (
+                "**Symptom Information Needed**\n"
+                "- Specific symptoms are needed to provide a better analysis.\n"
+                "- Examples include fever, pain, or fatigue.\n"
+                "- Consult a doctor for a thorough evaluation.\n\n"
+                "## Additional Information\n"
+                "- Keeping a symptom diary can help doctors diagnose issues.\n"
+                "- Urgent symptoms like chest pain require immediate attention.\n"
+            )
+        query = (
+            "You are a medical assistant providing general medical information based on reported symptoms. "
+            "Follow these formatting rules strictly for all responses:\n"
+            "- For the first section heading, use `**Possible Conditions**` (bolded) instead of `## Possible Conditions`. Use `##` for all subsequent section headings (e.g., `## Recommendations`). Headings must be left-aligned with no indentation or centering.\n"
+            "- Do not use colons in headings (e.g., not `Possible Conditions:`), single `#`, or other heading styles.\n"
+            "- Use `-` for bullet points, with exactly one item per bullet. Do not combine multiple items in a single bullet, use colons (e.g., not `- Condition: description`), or use other symbols like `*`, `•`, or `◦`.\n"
+            "- Do not use bold (`**`) or italic (`*`) text unless explicitly requested by the user, except for the `**Possible Conditions**` heading.\n"
+            "- Structure responses with `**Possible Conditions**` as the first heading, followed by bullet points (`-`) for key details, subsequent headings with `##`, and plain text for additional explanations.\n"
+            "- Do not include 'Assistant:', 'Bot:', or any similar prefixes in the response.\n"
+            "- Ensure all bullet points are concise, complete sentences ending with a period.\n"
+            "- Avoid common errors: do not use colons in headings or bullet points, do not combine multiple descriptions in one bullet, and do not use numbered lists or other bullet symbols.\n"
+            "- Use the user's exact input without correcting spellings, even if incorrect (e.g., 'fevr' stays 'fevr').\n"
+            "- Add some more medical information from your own knowledge and provide that information in a clear format to users.\n"
+            "- Ensure the response is formatted to be displayed in a justified text manner, with headings left-aligned.\n"
+            "- Respond only in English, regardless of context or input.\n"
+            "- Always recommend consulting a doctor for a professional diagnosis.\n"
+            f"Here are the user's symptoms: {symptoms}. What might this indicate based on medical guidelines? Provide general information and recommend consulting a doctor."
+        )
+        try:
+            result = self.qa_chain({"question": query, "chat_history": []})
+            answer = result["answer"]
+            return answer
+        except ValueError as e:
+            logger.error(f"API error in check_symptoms: {str(e)}")
+            error_str = str(e).lower()
+            if "no instances available" in error_str or "503" in error_str:
+                return (
+                    "**Model Unavailable**\n"
+                    "- The medical database is temporarily unavailable due to high demand.\n"
+                    "- Try again later or with different symptoms.\n"
+                    "- Consult a healthcare professional for urgent needs.\n\n"
+                    "## Additional Information\n"
+                    "- Free models may have limited availability.\n"
+                    "- Check OpenRouter.ai for model status.\n"
+                )
+            raise e
