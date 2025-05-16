@@ -3862,7 +3862,7 @@ class ModelAPI:
             if "no instances available" in error_str or "503" in error_str:
                 return (
                     "## Model Unavailable\n"
-                    "- The medical database is temporarilyUnavailable due to high demand.\n"
+                    "- The medical database is temporarily unavailable due to high demand.\n"
                     "- Try again later or with a different question.\n"
                     "- Consult a healthcare professional for urgent needs.\n\n"
                     "## Additional Information\n"
