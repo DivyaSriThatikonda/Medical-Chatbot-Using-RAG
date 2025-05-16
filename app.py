@@ -3162,4 +3162,3 @@ if prompt := st.chat_input("Ask a medical question"):
 
 st.markdown('</div>', unsafe_allow_html=True)
 st.markdown('</div>', unsafe_allow_html=True)
-
