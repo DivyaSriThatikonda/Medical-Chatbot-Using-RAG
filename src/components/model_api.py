@@ -4178,53 +4178,59 @@ class ModelAPI:
                     "- Check OpenRouter.ai for model status.\n"
                 )
             raise e
+   def check_symptoms(self, symptoms):
+   query = f"I have the following symptoms: {symptoms}. What might this indicate based on medical guidelines? Please provide general information and recommend consulting a doctor."
+   # result = self.qa_chain({"question": query, "chat_history": []})
+   # return result["answer"]
 
-    def check_symptoms(self, symptoms):
-        if not symptoms.strip() or symptoms.lower() in ["i don't feel well", "not feeling well"]:
-            return (
-                "**Symptom Information Needed**\n"
-                "- Specific symptoms are needed to provide a better analysis.\n"
-                "- Examples include fever, pain, or fatigue.\n"
-                "- Consult a doctor for a thorough evaluation.\n\n"
-                "## Additional Information\n"
-                "- Keeping a symptom diary can help doctors diagnose issues.\n"
-                "- Urgent symptoms like chest pain require immediate attention.\n"
-            )
-        query = (
-            "You are a medical assistant providing general medical information based on reported symptoms. "
-            "Follow these formatting rules strictly for all responses:\n"
-            "- For the first section heading, use exactly `**Possible Conditions**` (Markdown bolded) instead of `## Possible Conditions` or any other variation. This heading must render as bold text in the output, with no visible Markdown asterisks (`**`). Use `##` for all subsequent section headings (e.g., `## Recommendations`). All headings must be left-aligned with no indentation, centering, or right-alignment.\n"
-            "- Insert a newline (`\n`) after each heading to ensure content (bullet points or text) starts on the next line. Content must not be on the same line as the heading.\n"
-            "- Do not use colons in headings (e.g., not `Possible Conditions:`), single `#`, or other heading styles.\n"
-            "- Use `-` for bullet points, with exactly one item per bullet. Each bullet point MUST start on a new line, with no extra spaces before the `-`. Insert a newline (`\n`) after each bullet point to ensure they do not combine into a paragraph (e.g., correct: `- Item 1.\n- Item 2.`; incorrect: `- Item 1. - Item 2.`). Bullet points must appear on separate lines in the final output, with no exceptions.\n"
-            "- After generating the response, verify that each bullet point is on a separate line and not combined into a paragraph. If they are combined, reformat the output to ensure proper separation with newlines.\n"
-            "- Apply these formatting rules consistently to all responses, whether generated using the vector database, the model's own knowledge, or a combination of both.\n"
-            "- Do not use bold (`**`) or italic (`*`) text unless explicitly requested by the user, except for the `**Possible Conditions**` heading.\n"
-            "- Ensure the entire response, including bullet points and additional text, is formatted to be displayed in a justified text manner (except for headings, which remain left-aligned). The rendering system will handle the justification, but structure the response to support this by using proper newlines and bullet points.\n"
-            "- Do not include 'Assistant:', 'Bot:', or any similar prefixes in the response.\n"
-            "- Ensure all bullet points are concise, complete sentences ending with a period.\n"
-            "- Avoid common errors: do not use colons in headings or bullet points, do not combine multiple descriptions in one bullet, and do not use numbered lists or other bullet symbols.\n"
-            "- Use the user's exact input without correcting spellings, even if incorrect (e.g., 'fevr' stays 'fevr').\n"
-            "- Add some more medical information from your own knowledge and provide that information in a clear format to users.\n"
-            "- Respond only in English, regardless of context or input.\n"
-            "- Always include a `## Recommendations` section with advice, and recommend consulting a doctor for a professional diagnosis.\n"
-            "- Example of the desired format (note the newline after `**Possible Conditions**` and after each bullet point to ensure proper separation; each bullet point is on its own line):\n"
-            "```\n"
-            "**Possible Conditions**\n"
-            "- These symptoms could indicate a common cold, which is a viral infection of the upper respiratory tract caused by rhinoviruses or other viruses.\n"
-            "  (Note: Newline inserted here to ensure the next bullet point is on a separate line.)\n"
-            "- They might suggest influenza (flu), a more severe viral illness that often includes fever, cough, fatigue, and body aches.\n"
-            "  (Note: Newline inserted here to ensure the next bullet point is on a separate line.)\n"
-            "- In some cases, these symptoms could be related to a respiratory infection such as bronchitis, which involves inflammation of the bronchial tubes.\n"
-            "  (Note: Newline inserted here to ensure the next bullet point is on a separate line.)\n"
-            "- COVID-19, caused by the SARS-CoV-2 virus, can also present with fever, cough, and cold-like symptoms, including sore throat and congestion.\n\n"
-            "## Recommendations\n"
-            "- Rest and stay hydrated to support recovery.\n"
-            "- Monitor symptoms closely and seek medical attention if they worsen.\n"
-            "Consult a doctor for a professional diagnosis.\n"
-            "```\n"
-            f"Here are the user's symptoms: {symptoms}. What might this indicate based on medical guidelines? Provide general information and recommend consulting a doctor."
-        )
+    # def check_symptoms(self, symptoms):
+    #     if not symptoms.strip() or symptoms.lower() in ["i don't feel well", "not feeling well"]:
+    #         return (
+    #             "**Symptom Information Needed**\n"
+    #             "- Specific symptoms are needed to provide a better analysis.\n"
+    #             "- Examples include fever, pain, or fatigue.\n"
+    #             "- Consult a doctor for a thorough evaluation.\n\n"
+    #             "## Additional Information\n"
+    #             "- Keeping a symptom diary can help doctors diagnose issues.\n"
+    #             "- Urgent symptoms like chest pain require immediate attention.\n"
+    #         )
+    #     query = (
+    #         "You are a medical assistant providing general medical information based on reported symptoms. "
+    #         "Follow these formatting rules strictly for all responses:\n"
+    #         "- For the first section heading, use exactly `**Possible Conditions**` (Markdown bolded) instead of `## Possible Conditions` or any other variation. This heading must render as bold text in the output, with no visible Markdown asterisks (`**`). Use `##` for all subsequent section headings (e.g., `## Recommendations`). All headings must be left-aligned with no indentation, centering, or right-alignment.\n"
+    #         "- Insert a newline (`\n`) after each heading to ensure content (bullet points or text) starts on the next line. Content must not be on the same line as the heading.\n"
+    #         "- Do not use colons in headings (e.g., not `Possible Conditions:`), single `#`, or other heading styles.\n"
+    #         "- Use `-` for bullet points, with exactly one item per bullet. Each bullet point MUST start on a new line, with no extra spaces before the `-`. Insert a newline (`\n`) after each bullet point to ensure they do not combine into a paragraph (e.g., correct: `- Item 1.\n- Item 2.`; incorrect: `- Item 1. - Item 2.`). Bullet points must appear on separate lines in the final output, with no exceptions.\n"
+    #         "- After generating the response, verify that each bullet point is on a separate line and not combined into a paragraph. If they are combined, reformat the output to ensure proper separation with newlines.\n"
+    #         "- Apply these formatting rules consistently to all responses, whether generated using the vector database, the model's own knowledge, or a combination of both.\n"
+    #         "- Do not use bold (`**`) or italic (`*`) text unless explicitly requested by the user, except for the `**Possible Conditions**` heading.\n"
+    #         "- Ensure the entire response, including bullet points and additional text, is formatted to be displayed in a justified text manner (except for headings, which remain left-aligned). The rendering system will handle the justification, but structure the response to support this by using proper newlines and bullet points.\n"
+    #         "- Do not include 'Assistant:', 'Bot:', or any similar prefixes in the response.\n"
+    #         "- Ensure all bullet points are concise, complete sentences ending with a period.\n"
+    #         "- Avoid common errors: do not use colons in headings or bullet points, do not combine multiple descriptions in one bullet, and do not use numbered lists or other bullet symbols.\n"
+    #         "- Use the user's exact input without correcting spellings, even if incorrect (e.g., 'fevr' stays 'fevr').\n"
+    #         "- Add some more medical information from your own knowledge and provide that information in a clear format to users.\n"
+    #         "- Respond only in English, regardless of context or input.\n"
+    #         "- Always include a `## Recommendations` section with advice, and recommend consulting a doctor for a professional diagnosis.\n"
+    #         "- Example of the desired format (note the newline after `**Possible Conditions**` and after each bullet point to ensure proper separation; each bullet point is on its own line):\n"
+    #         "```\n"
+    #         "**Possible Conditions**\n"
+    #         "- These symptoms could indicate a common cold, which is a viral infection of the upper respiratory tract caused by rhinoviruses or other viruses.\n"
+    #         "  (Note: Newline inserted here to ensure the next bullet point is on a separate line.)\n"
+    #         "- They might suggest influenza (flu), a more severe viral illness that often includes fever, cough, fatigue, and body aches.\n"
+    #         "  (Note: Newline inserted here to ensure the next bullet point is on a separate line.)\n"
+    #         "- In some cases, these symptoms could be related to a respiratory infection such as bronchitis, which involves inflammation of the bronchial tubes.\n"
+    #         "  (Note: Newline inserted here to ensure the next bullet point is on a separate line.)\n"
+    #         "- COVID-19, caused by the SARS-CoV-2 virus, can also present with fever, cough, and cold-like symptoms, including sore throat and congestion.\n\n"
+    #         "## Recommendations\n"
+    #         "- Rest and stay hydrated to support recovery.\n"
+    #         "- Monitor symptoms closely and seek medical attention if they worsen.\n"
+    #         "Consult a doctor for a professional diagnosis.\n"
+    #         "```\n"
+    #         f"Here are the user's symptoms: {symptoms}. What might this indicate based on medical guidelines? Provide general information and recommend consulting a doctor."
+    #     )
+        def check_symptoms(self, symptoms):
+        query = f"I have the following symptoms: {symptoms}. What might this indicate based on medical guidelines? Please provide general information and recommend consulting a doctor."
         try:
             result = self.qa_chain({"question": query, "chat_history": []})
             answer = result["answer"]
