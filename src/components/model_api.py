@@ -4872,6 +4872,7 @@ class ModelAPI:
             "- Recommend consulting a doctor for a professional diagnosis.\n"
             "- After generating the response, check if bullet points use `•` and are on separate lines.\n"
             "- If bullet points are combined or use the wrong symbol, reformat them to use `•` and add newlines.\n"
+            "- Lastly Ensure that entire response should in justify manner only.\n"
             f"Here are the user's symptoms: {symptoms}. What might this indicate based on medical guidelines? Provide general information and recommend consulting a doctor."
         )
         try:
