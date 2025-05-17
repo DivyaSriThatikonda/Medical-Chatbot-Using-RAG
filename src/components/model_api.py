@@ -4812,85 +4812,107 @@ class ModelAPI:
                     "• Check OpenRouter.ai for model status.\n"
                 )
             raise e
+         def check_symptoms(self, symptoms):
+             if not symptoms.strip() or symptoms.lower() in ["i don't feel well", "not feeling well"]:
+                 return (
+                     "I’m sorry to hear you’re not feeling well, but I need more specific symptoms to provide a better analysis. "
+                     "For example, do you have a fever, pain, fatigue, or any other symptoms? In the meantime, I recommend consulting a doctor for a thorough evaluation."
+                 )
+             query = f"I have the following symptoms: {symptoms}. What might this indicate based on medical guidelines? Please provide general information and recommend consulting a doctor."
+             try:
+                 result = self.qa_chain({"question": query, "chat_history": []})
+                 answer = result["answer"]
+                 # Post-process the response to enforce ## for section titles
+                 answer = self.enforce_heading_format(answer)
+                 return answer
+             except ValueError as e:
+                 if "Rate limit exceeded" in str(e):
+                     return (
+                         "I’ve reached my daily request limit with the API I use to fetch detailed answers. "
+                         "Please try again tomorrow, or consult a healthcare professional for advice about your symptoms in the meantime."
+                     )
+                 raise e
 
-    def check_symptoms(self, symptoms):
-        if not symptoms.strip() or symptoms.lower() in ["i don't feel well", "not feeling well"]:
-            return (
-                "**Symptom Information Needed**\n"
-                "• Specific symptoms are needed to provide a better analysis.\n"
-                "• Examples include fever, pain, or fatigue.\n"
-                "• Consult a doctor for a thorough evaluation.\n\n"
-                "## Additional Information\n"
-                "• Keeping a symptom diary can help doctors diagnose issues.\n"
-                "• Urgent symptoms like chest pain require immediate attention.\n"
-            )
-        query = (
-            "You are a medical assistant providing general medical information based on reported symptoms.\n"
-            "- Follow these formatting rules strictly for all responses.\n"
-            "- Use `**Possible Conditions**` as the first section heading, in bold Markdown.\n"
-            "- Use `##` for all other section headings, like `## Recommendations`.\n"
-            "- All headings must be left-aligned with no indentation.\n"
-            "- Insert a newline (`\n`) after each heading.\n"
-            "- Content must start on the next line after the heading.\n"
-            "- Do not use colons in headings, like `Possible Conditions:`.\n"
-            "- Do not use single `#` or other heading styles.\n"
-            "- Use `•` (Unicode bullet, U+2022) for bullet points, with one item per bullet.\n"
-            "- Each bullet point must start on a new line.\n"
-            "- No extra spaces before the `•` in bullet points.\n"
-            "- Strictly enforce: Only use `•` for bullet points, no exceptions.\n"
-            "- Insert a newline (`\n`) after each bullet point.\n"
-            "- Bullet points must not combine into a paragraph.\n"
-            "- Correct format: `• Item 1.\n• Item 2.`\n"
-            "- Incorrect format: `• Item 1. • Item 2.`\n"
-            "- Do not use colons in bullet points, like `• Condition: description`.\n"
-            "- Do not use other bullet symbols like `-`, `*`, `●`, or `◦`.\n"
-            "- Apply these rules to all responses, from any knowledge source.\n"
-            "- Do not use bold (`**`) or italic (`*`) text, except for `**Possible Conditions**`.\n"
-            "- All text, including bullet points and additional text, must be justified, except for headings which remain left-aligned.\n"
-            "- Use proper newlines to support justified text rendering.\n"
-            "- Strictly enforce: All text (except headings) must be justified, no exceptions.\n"
-            "- Example of the desired format with `•` bullet points and justified text:\n"
-            "```\n"
-            "**Possible Conditions**\n"
-            "• A common cold may be indicated, caused by viruses.\n"
-            "• Influenza (flu) is possible, with fever and cough.\n"
-            "## Recommendations\n"
-            "• Rest and stay hydrated.\n"
-            "All text (except headings) must be justified in the final rendering.\n"
-            "Consult a doctor for a professional diagnosis.\n"
-            "```\n"
-            "- Note: Each bullet point above uses `•` and is on its own line with a newline after it.\n"
-            "- Do not include prefixes like 'Assistant:' or 'Bot:' in the response.\n"
-            "- Make bullet points concise, complete sentences with a period.\n"
-            "- Avoid colons in headings or bullet points.\n"
-            "- Do not combine multiple descriptions in one bullet.\n"
-            "- Do not use numbered lists or other bullet symbols.\n"
-            "- Use the user's exact input, even if misspelled, like 'fevr'.\n"
-            "- Add extra medical information in a clear format.\n"
-            "- Respond only in English.\n"
-            "- Always include a `## Recommendations` section.\n"
-            "- Recommend consulting a doctor for a professional diagnosis.\n"
-            "- After generating the response, check if bullet points use `•` and are on separate lines.\n"
-            "- If bullet points are combined or use the wrong symbol, reformat them to use `•` and add newlines.\n"
-            "- Lastly Ensure that entire response should in justify manner only.\n"
-            f"Here are the user's symptoms: {symptoms}. What might this indicate based on medical guidelines? Provide general information and recommend consulting a doctor."
-        )
-        try:
-            result = self.qa_chain({"question": query, "chat_history": []})
-            answer = result["answer"]
-            return answer
-        except ValueError as e:
-            logger.error(f"API error in check_symptoms: {str(e)}")
-            error_str = str(e).lower()
-            if "no instances available" in error_str or "503" in error_str:
-                return (
-                    "**Model Unavailable**\n"
-                    "• The medical database is temporarily unavailable due to high demand.\n"
-                    "• Try again later or with different symptoms.\n"
-                    "• Consult a healthcare professional for urgent needs.\n\n"
-                    "## Additional Information\n"
-                    "• Free models may have limited availability.\n"
-                    "• Check OpenRouter.ai for model status.\n"
-                )
-            raise e
+      
+
+    # def check_symptoms(self, symptoms):
+    #     if not symptoms.strip() or symptoms.lower() in ["i don't feel well", "not feeling well"]:
+    #         return (
+    #             "**Symptom Information Needed**\n"
+    #             "• Specific symptoms are needed to provide a better analysis.\n"
+    #             "• Examples include fever, pain, or fatigue.\n"
+    #             "• Consult a doctor for a thorough evaluation.\n\n"
+    #             "## Additional Information\n"
+    #             "• Keeping a symptom diary can help doctors diagnose issues.\n"
+    #             "• Urgent symptoms like chest pain require immediate attention.\n"
+    #         )
+    #     query = (
+    #         "You are a medical assistant providing general medical information based on reported symptoms.\n"
+    #         "- Follow these formatting rules strictly for all responses.\n"
+    #         "- Use `**Possible Conditions**` as the first section heading, in bold Markdown.\n"
+    #         "- Use `##` for all other section headings, like `## Recommendations`.\n"
+    #         "- All headings must be left-aligned with no indentation.\n"
+    #         "- Insert a newline (`\n`) after each heading.\n"
+    #         "- Content must start on the next line after the heading.\n"
+    #         "- Do not use colons in headings, like `Possible Conditions:`.\n"
+    #         "- Do not use single `#` or other heading styles.\n"
+    #         "- Use `•` (Unicode bullet, U+2022) for bullet points, with one item per bullet.\n"
+    #         "- Each bullet point must start on a new line.\n"
+    #         "- No extra spaces before the `•` in bullet points.\n"
+    #         "- Strictly enforce: Only use `•` for bullet points, no exceptions.\n"
+    #         "- Insert a newline (`\n`) after each bullet point.\n"
+    #         "- Bullet points must not combine into a paragraph.\n"
+    #         "- Correct format: `• Item 1.\n• Item 2.`\n"
+    #         "- Incorrect format: `• Item 1. • Item 2.`\n"
+    #         "- Do not use colons in bullet points, like `• Condition: description`.\n"
+    #         "- Do not use other bullet symbols like `-`, `*`, `●`, or `◦`.\n"
+    #         "- Apply these rules to all responses, from any knowledge source.\n"
+    #         "- Do not use bold (`**`) or italic (`*`) text, except for `**Possible Conditions**`.\n"
+    #         "- All text, including bullet points and additional text, must be justified, except for headings which remain left-aligned.\n"
+    #         "- Use proper newlines to support justified text rendering.\n"
+    #         "- Strictly enforce: All text (except headings) must be justified, no exceptions.\n"
+    #         "- Example of the desired format with `•` bullet points and justified text:\n"
+    #         "```\n"
+    #         "**Possible Conditions**\n"
+    #         "• A common cold may be indicated, caused by viruses.\n"
+    #         "• Influenza (flu) is possible, with fever and cough.\n"
+    #         "## Recommendations\n"
+    #         "• Rest and stay hydrated.\n"
+    #         "All text (except headings) must be justified in the final rendering.\n"
+    #         "Consult a doctor for a professional diagnosis.\n"
+    #         "```\n"
+    #         "- Note: Each bullet point above uses `•` and is on its own line with a newline after it.\n"
+    #         "- Do not include prefixes like 'Assistant:' or 'Bot:' in the response.\n"
+    #         "- Make bullet points concise, complete sentences with a period.\n"
+    #         "- Avoid colons in headings or bullet points.\n"
+    #         "- Do not combine multiple descriptions in one bullet.\n"
+    #         "- Do not use numbered lists or other bullet symbols.\n"
+    #         "- Use the user's exact input, even if misspelled, like 'fevr'.\n"
+    #         "- Add extra medical information in a clear format.\n"
+    #         "- Respond only in English.\n"
+    #         "- Always include a `## Recommendations` section.\n"
+    #         "- Recommend consulting a doctor for a professional diagnosis.\n"
+    #         "- After generating the response, check if bullet points use `•` and are on separate lines.\n"
+    #         "- If bullet points are combined or use the wrong symbol, reformat them to use `•` and add newlines.\n"
+    #         "- Lastly Ensure that entire response should in justify manner only.\n"
+    #         f"Here are the user's symptoms: {symptoms}. What might this indicate based on medical guidelines? Provide general information and recommend consulting a doctor."
+    #     )
+    #     try:
+    #         result = self.qa_chain({"question": query, "chat_history": []})
+    #         answer = result["answer"]
+    #         return answer
+    #     except ValueError as e:
+    #         logger.error(f"API error in check_symptoms: {str(e)}")
+    #         error_str = str(e).lower()
+    #         if "no instances available" in error_str or "503" in error_str:
+    #             return (
+    #                 "**Model Unavailable**\n"
+    #                 "• The medical database is temporarily unavailable due to high demand.\n"
+    #                 "• Try again later or with different symptoms.\n"
+    #                 "• Consult a healthcare professional for urgent needs.\n\n"
+    #                 "## Additional Information\n"
+    #                 "• Free models may have limited availability.\n"
+    #                 "• Check OpenRouter.ai for model status.\n"
+    #             )
+    #         raise e
 
