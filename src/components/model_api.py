@@ -4891,4 +4891,13 @@ class ModelAPI:
                     "• Free models may have limited availability.\n"
                     "• Check OpenRouter.ai for model status.\n"
                 )
-            raise e
+            return (
+                "**Error Occurred**\n"
+                "• There was a problem processing your symptoms.\n"
+                "• Please try again later or describe your symptoms differently.\n"
+                "• For medical concerns, please consult a healthcare professional.\n\n"
+                "## Additional Information\n"
+                "• Try rephrasing your symptoms for better results.\n"
+                "• Ensure a stable internet connection.\n"
+                "• Contact support if the issue persists.\n"
+            )
