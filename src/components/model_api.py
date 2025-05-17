@@ -4568,17 +4568,11 @@ class ModelAPI:
             logger.error("OPENROUTER_API_KEY is not set in .env file")
             raise ValueError("Missing OPENROUTER_API_KEY. Please set it in the .env file.")
         
-        try:
-            self.llm = ChatOpenAI(
-                model="deepseek/deepseek-chat:free",
-                openai_api_key=api_key,
-                openai_api_base="https://openrouter.ai/api/v1"
-            )
-            logger.info("API initialization successful")
-        except Exception as e:
-            logger.error(f"API initialization error: {str(e)}")
-            raise ValueError(f"Failed to initialize API: {str(e)}")
-        
+        self.llm = ChatOpenAI(
+            model="deepseek/deepseek-chat:free",
+            openai_api_key=api_key,
+            openai_api_base="https://openrouter.ai/api/v1"
+        )
         self.qa_chain = ConversationalRetrievalChain.from_llm(
             llm=self.llm,
             retriever=vector_store.as_retriever(),
@@ -4587,11 +4581,7 @@ class ModelAPI:
         # Cache for responses to reduce API calls
         self.response_cache = {}
         # Fallback responses for common questions
-        self.fallback_responses = self._initialize_fallback_responses()
-
-    def _initialize_fallback_responses(self):
-        """Initialize fallback responses in the correct format"""
-        return {
+        self.fallback_responses = {
             "what are the symptoms of the flu?": (
                 "## Symptoms of the Flu\n"
                 "• Fever often high, 100°F to 104°F or higher.\n"
@@ -4610,13 +4600,10 @@ class ModelAPI:
             ),
             "what causes high blood pressure?": (
                 "## Causes of High Blood Pressure\n"
-                "• Lifestyle factors like poor diet with high salt intake.\n"
-                "• Obesity and lack of physical activity.\n"
-                "• Excessive alcohol consumption and smoking.\n"
-                "• Underlying medical conditions such as diabetes.\n"
-                "• Kidney disease and hormonal disorders.\n"
-                "• Genetic predisposition where family history increases risk.\n"
-                "• Chronic stress contributes to elevated blood pressure.\n"
+                "• Lifestyle factors like poor diet with high salt intake, obesity, lack of physical activity, excessive alcohol consumption, and smoking.\n"
+                "• Underlying medical conditions such as diabetes, kidney disease, and hormonal disorders.\n"
+                "• Genetic predisposition where a family history of hypertension increases risk.\n"
+                "• Stress where chronic stress contributes to elevated blood pressure.\n"
                 "• Aging as blood pressure often increases with age.\n\n"
                 "## Additional Information\n"
                 "• Hypertension affects over 1 billion people globally.\n"
@@ -4625,17 +4612,15 @@ class ModelAPI:
             ),
             "what is anemia?": (
                 "## What is Anemia\n"
-                "• Anemia is a condition with low levels of healthy red blood cells or hemoglobin.\n"
-                "• Hemoglobin carries oxygen to body tissues.\n"
-                "• Fatigue or weakness is a common symptom.\n"
-                "• Shortness of breath may occur with exertion.\n"
-                "• Pale skin is often noticeable.\n"
-                "• Dizziness or lightheadedness can affect daily activities.\n\n"
+                "• Anemia is a condition with abnormally low levels of healthy red blood cells or hemoglobin, which carries oxygen to tissues.\n"
+                "• Fatigue or weakness.\n"
+                "• Shortness of breath.\n"
+                "• Pale skin.\n"
+                "• Dizziness or lightheadedness.\n\n"
                 "## Types of Anemia\n"
-                "• Iron-deficiency anemia caused by lack of iron.\n"
-                "• Vitamin B12 deficiency anemia due to insufficient B12.\n"
-                "• Sickle cell anemia is a genetic condition.\n"
-                "• Aplastic anemia results from damaged bone marrow.\n\n"
+                "• Iron-deficiency anemia caused by lack of iron, often due to poor diet or blood loss.\n"
+                "• Vitamin B12 deficiency anemia due to insufficient B12, often linked to diet or absorption issues.\n"
+                "• Sickle cell anemia, a genetic condition where red blood cells are abnormally shaped.\n\n"
                 "## Additional Information\n"
                 "• Anemia affects about 25% of the global population.\n"
                 "• Blood tests like CBC can confirm diagnosis.\n"
@@ -4643,13 +4628,10 @@ class ModelAPI:
             ),
             "what are symptoms of heart attack?": (
                 "## Symptoms of a Heart Attack\n"
-                "• Chest pain or discomfort often described as pressure or squeezing.\n"
-                "• Pain may occur in center or left side of chest.\n"
-                "• Discomfort can last minutes or come and go.\n"
-                "• Upper body discomfort in arms, back, neck, jaw, or stomach.\n"
+                "• Chest pain or discomfort often described as pressure, squeezing, or pain in the center or left side of the chest, lasting minutes or recurring.\n"
+                "• Upper body discomfort in one or both arms, jaw, neck, back, or stomach.\n"
                 "• Shortness of breath with or without chest pain.\n"
-                "• Cold sweat may occur during an episode.\n"
-                "• Nausea or lightheadedness can accompany other symptoms.\n\n"
+                "• Cold sweat, nausea, or lightheadedness accompanying chest discomfort.\n\n"
                 "## Additional Information\n"
                 "• Heart attacks are a leading cause of death worldwide.\n"
                 "• Immediate treatment like aspirin can improve outcomes.\n"
@@ -4657,15 +4639,12 @@ class ModelAPI:
             ),
             "what causes kidney stones?": (
                 "## Causes of Kidney Stones\n"
-                "• Dehydration leads to concentrated urine.\n"
-                "• High sodium diet increases stone formation risk.\n"
-                "• Foods high in oxalate like spinach can contribute.\n"
-                "• Excessive animal protein consumption may increase risk.\n"
-                "• Medical conditions like hyperparathyroidism or gout.\n"
-                "• Urinary tract infections can lead to certain stones.\n"
-                "• Family history suggests genetic predisposition.\n"
-                "• Obesity increases risk factors for stone formation.\n"
-                "• Certain medications like diuretics or calcium-based antacids.\n\n"
+                "• Dehydration where not drinking enough water leads to concentrated urine, increasing stone formation risk.\n"
+                "• Diet with high intake of sodium, oxalate found in foods like spinach, or animal protein.\n"
+                "• Medical conditions like hyperparathyroidism, gout, or urinary tract infections.\n"
+                "• Family history with a genetic predisposition to kidney stones.\n"
+                "• Obesity where higher body weight increases risk.\n"
+                "• Certain medications like some diuretics or calcium-based antacids.\n\n"
                 "## Additional Information\n"
                 "• Kidney stones affect about 10% of people in their lifetime.\n"
                 "• Imaging tests like CT scans can detect stones.\n"
@@ -4673,24 +4652,18 @@ class ModelAPI:
             ),
             "how can i prevent them?": (
                 "## Preventing Kidney Stones\n"
-                "• Stay hydrated by drinking plenty of water daily.\n"
-                "• Aim for 2-3 liters of water daily to dilute urine.\n"
-                "• Reduce sodium intake to lower stone risk.\n"
-                "• Limit oxalate-rich foods like spinach and chocolate.\n"
-                "• Moderate animal protein consumption.\n"
-                "• Eat more citrus fruits containing natural citrate.\n"
-                "• Maintain a healthy weight through proper diet and exercise.\n"
-                "• Monitor medical conditions like gout or UTIs.\n"
-                "• Consult a doctor for personalized prevention strategies.\n\n"
+                "• Stay hydrated by drinking plenty of water, aiming for 2-3 liters daily to dilute urine.\n"
+                "• Adjust diet by reducing sodium, oxalate-rich foods like spinach, and animal protein, and eating more citrus fruits containing citrate to prevent stones.\n"
+                "• Maintain a healthy weight as obesity increases risk, so regular exercise and a balanced diet help.\n"
+                "• Monitor medical conditions like gout or urinary tract infections that contribute to stones.\n"
+                "• Consult a doctor if you have a history of kidney stones for specific dietary changes or medications.\n\n"
                 "## Additional Information\n"
                 "• Citrate supplements may reduce stone formation.\n"
                 "• Regular check-ups can catch stones early.\n"
-                "Prevention strategies should be tailored to the type of stones you've had previously. Your doctor can recommend specific approaches based on your medical history."
             )
         }
 
     def is_greeting(self, question):
-        """Check if the input is a greeting and return appropriate response"""
         question_lower = question.lower().strip()
         greeting_responses = {
             "good morning": "Good morning! How can I assist with your medical questions today?",
@@ -4710,11 +4683,9 @@ class ModelAPI:
         return None
 
     def check_repetitive_question(self, question, chat_history):
-        """Check if question has been asked before and provide a concise response"""
         question_lower = question.lower().strip()
-        # Handle blood pressure repetitive questions
         if "blood pressure" in question_lower and ("cause" in question_lower or "what causes" in question_lower):
-            for prev_question, _ in chat_history:
+            for prev_question, prev_answer in chat_history:
                 prev_question_lower = prev_question.lower().strip()
                 if "blood pressure" in prev_question_lower and (
                         "cause" in prev_question_lower or "what causes" in prev_question_lower):
@@ -4728,47 +4699,9 @@ class ModelAPI:
                         "• Medications like ACE inhibitors can manage hypertension.\n"
                         "Would you like to know more about managing high blood pressure, or do you have a different question?"
                     )
-        # Handle other repetitive question types here
         return None
 
-    def format_response(self, raw_response):
-        """Ensure response follows the required formatting guidelines"""
-        if not raw_response:
-            return "I couldn't find information on that topic."
-        
-        # Split response into lines to process
-        lines = raw_response.split('\n')
-        formatted_lines = []
-        
-        for i, line in enumerate(lines):
-            # Format headings correctly
-            if line.strip().startswith('#'):
-                # Remove any colons from headings
-                line = line.replace(':', '')
-                formatted_lines.append(line)
-            # Format bullet points correctly
-            elif line.strip().startswith('-') or line.strip().startswith('*'):
-                # Convert to bullet points with •
-                bullet_content = line.strip()[1:].strip()
-                formatted_lines.append(f"• {bullet_content}")
-            # Pass through other content
-            else:
-                formatted_lines.append(line)
-        
-        # Join lines back together
-        formatted_response = '\n'.join(formatted_lines)
-        
-        # Make sure we have proper section headings
-        if '##' not in formatted_response:
-            if 'symptoms' in formatted_response.lower():
-                formatted_response = f"## Medical Information\n{formatted_response}"
-            else:
-                formatted_response = f"## Response\n{formatted_response}"
-                
-        return formatted_response
-
     def get_response(self, question, chat_history):
-        """Get a response to the user's question"""
         # Check for greetings first
         greeting_response = self.is_greeting(question)
         if greeting_response:
@@ -4794,30 +4727,63 @@ class ModelAPI:
 
         # Add context from recent chat history
         context = ""
-        if chat_history and len(chat_history) > 0:
+        if chat_history:
             last_question, last_answer = chat_history[-1]
             if "stress" in last_question.lower() and "manage" in question_lower:
                 context = f"Previous question: {last_question}\nPrevious answer: {last_answer}\n"
 
-        # Create a simplified prompt that focuses on content rather than formatting
         modified_question = (
-            "You are a medical assistant providing accurate medical information. "
-            "Format your response like this:\n"
-            "1. Use '## ' (two hash symbols and a space) for section headings\n"
-            "2. Use bullet points with the '• ' symbol (Unicode bullet point)\n"
-            "3. Put one piece of information per bullet point\n"
-            "4. Include at least one section with '## Additional Information'\n"
+            "You are a medical assistant providing accurate and detailed medical information. "
+            "Follow these formatting rules strictly for all responses:\n"
+            "- Use Markdown `##` for all section headings (e.g., `## Symptoms`).\n"
+            "- Headings must be left-aligned with no indentation, centering, or right-alignment.\n"
+            "- Do not use colons in headings (e.g., not `Symptoms:`), bold (`**`), single `#`, or other heading styles.\n"
+            "- Use `•` (Unicode bullet, U+2022) for bullet points, with exactly one item per bullet.\n"
+            "- Each bullet point must start on a new line, with no extra spaces before the `•`.\n"
+            "- Do not combine multiple items in a single bullet, use colons (e.g., not `• Item: description`).\n"
+            "- Do not use other bullet symbols like `-`, `*`, `●`, or `◦`.\n"
+            "- Strictly enforce: Only use `•` for bullet points, no exceptions.\n"
+            "- Insert a newline (`\n`) after each bullet point.\n"
+            "- Bullet points must not combine into a paragraph.\n"
+            "- Correct format: `• Item 1.\n• Item 2.`\n"
+            "- Incorrect format: `• Item 1. • Item 2.`\n"
+            "- Structure responses with a main heading (`##`) for the topic on its own line, followed by a newline.\n"
+            "- Bullet points (`•`) must start on the next line after the heading.\n"
+            "- Plain text for additional explanations must follow the bullet points.\n"
+            "- All text, including bullet points and additional text, must be justified, except for headings which remain left-aligned.\n"
+            "- Use proper newlines to support justified text rendering.\n"
+            "- Strictly enforce: All text (except headings) must be justified, no exceptions.\n"
+            "- Example of the desired format with `•` bullet points and justified text:\n"
+            "```\n"
+            "## Symptoms of a Cold\n"
+            "• Runny or stuffy nose is common.\n"
+            "• Sore throat may occur early on.\n"
+            "• Cough is usually mild.\n"
+            "• Fatigue can persist for a few days.\n"
+            "## Additional Information\n"
+            "• Colds are caused by viruses like rhinovirus.\n"
+            "All text (except headings) must be justified in the final rendering.\n"
+            "```\n"
+            "- Note: Each bullet point above uses `•` and is on its own line with a newline after it.\n"
+            "- Do not include 'Assistant:', 'Bot:', or any similar prefixes in the response.\n"
+            "- Ensure all bullet points are concise, complete sentences ending with a period.\n"
+            "- Avoid colons in headings or bullet points.\n"
+            "- Do not combine multiple descriptions in one bullet.\n"
+            "- Do not use numbered lists or other bullet symbols.\n"
+            "- Use the user's exact input, even if misspelled, like 'diabtes'.\n"
+            "- Add extra medical information in a clear format.\n"
+            "- Respond only in English.\n"
+            "- For simpler questions, include additional details like examples, types, or related information.\n"
+            "- After generating the response, check if bullet points use `•` and are on separate lines.\n"
+            "- If bullet points are combined or use the wrong symbol, reformat them to use `•` and add newlines.\n"
             f"{context}Here is the user's question: {question}"
         )
-        
         try:
-            # Get response from language model
             result = self.qa_chain({"question": modified_question, "chat_history": chat_history})
             answer = result["answer"]
 
             # Check if the vector store lacks information
-            if ("provided context does not contain information" in answer.lower() or 
-                "not found in the context" in answer.lower()):
+            if "provided context does not contain information" in answer.lower() or "not found in the context" in answer.lower():
                 return (
                     "## Information Not Available\n"
                     "• The medical database does not contain details about this topic.\n"
@@ -4829,13 +4795,9 @@ class ModelAPI:
                     "Would you like to ask about something else?"
                 )
 
-            # Format the response
-            formatted_answer = self.format_response(answer)
-            
             # Cache the response
-            self.response_cache[question_lower] = formatted_answer
-            return formatted_answer
-            
+            self.response_cache[question_lower] = answer
+            return answer
         except ValueError as e:
             logger.error(f"API error in get_response: {str(e)}")
             error_str = str(e).lower()
@@ -4849,19 +4811,9 @@ class ModelAPI:
                     "• Free models may have limited availability.\n"
                     "• Check OpenRouter.ai for model status.\n"
                 )
-            return (
-                "## Error Occurred\n"
-                "• There was a problem processing your request.\n"
-                "• The system may be experiencing technical difficulties.\n"
-                "• Please try again with a different question.\n\n"
-                "## Troubleshooting\n"
-                "• Try refreshing the page.\n"
-                "• Check your internet connection.\n"
-                "• Wait a few minutes before trying again.\n"
-            )
+            raise e
 
     def check_symptoms(self, symptoms):
-        """Process user symptoms and return relevant medical information"""
         if not symptoms.strip() or symptoms.lower() in ["i don't feel well", "not feeling well"]:
             return (
                 "**Symptom Information Needed**\n"
@@ -4872,33 +4824,60 @@ class ModelAPI:
                 "• Keeping a symptom diary can help doctors diagnose issues.\n"
                 "• Urgent symptoms like chest pain require immediate attention.\n"
             )
-            
-        # Create a simplified prompt for symptom checking
         query = (
-            "You are a medical assistant providing general medical information based on reported symptoms. "
-            "Format your response like this:\n"
-            "1. Start with '**Possible Conditions**' as a bold section\n"
-            "2. List possible conditions as bullet points with the '• ' symbol\n"
-            "3. Add a '## Recommendations' section with bullet points\n"
-            "4. Always recommend consulting a doctor for a professional diagnosis\n"
-            f"Here are the user's symptoms: {symptoms}. What might this indicate based on medical guidelines?"
+            "You are a medical assistant providing general medical information based on reported symptoms.\n"
+            "- Follow these formatting rules strictly for all responses.\n"
+            "- Use `**Possible Conditions**` as the first section heading, in bold Markdown.\n"
+            "- Use `##` for all other section headings, like `## Recommendations`.\n"
+            "- All headings must be left-aligned with no indentation.\n"
+            "- Insert a newline (`\n`) after each heading.\n"
+            "- Content must start on the next line after the heading.\n"
+            "- Do not use colons in headings, like `Possible Conditions:`.\n"
+            "- Do not use single `#` or other heading styles.\n"
+            "- Use `•` (Unicode bullet, U+2022) for bullet points, with one item per bullet.\n"
+            "- Each bullet point must start on a new line.\n"
+            "- No extra spaces before the `•` in bullet points.\n"
+            "- Strictly enforce: Only use `•` for bullet points, no exceptions.\n"
+            "- Insert a newline (`\n`) after each bullet point.\n"
+            "- Bullet points must not combine into a paragraph.\n"
+            "- Correct format: `• Item 1.\n• Item 2.`\n"
+            "- Incorrect format: `• Item 1. • Item 2.`\n"
+            "- Do not use colons in bullet points, like `• Condition: description`.\n"
+            "- Do not use other bullet symbols like `-`, `*`, `●`, or `◦`.\n"
+            "- Apply these rules to all responses, from any knowledge source.\n"
+            "- Do not use bold (`**`) or italic (`*`) text, except for `**Possible Conditions**`.\n"
+            "- All text, including bullet points and additional text, must be justified, except for headings which remain left-aligned.\n"
+            "- Use proper newlines to support justified text rendering.\n"
+            "- Strictly enforce: All text (except headings) must be justified, no exceptions.\n"
+            "- Example of the desired format with `•` bullet points and justified text:\n"
+            "```\n"
+            "**Possible Conditions**\n"
+            "• A common cold may be indicated, caused by viruses.\n"
+            "• Influenza (flu) is possible, with fever and cough.\n"
+            "## Recommendations\n"
+            "• Rest and stay hydrated.\n"
+            "All text (except headings) must be justified in the final rendering.\n"
+            "Consult a doctor for a professional diagnosis.\n"
+            "```\n"
+            "- Note: Each bullet point above uses `•` and is on its own line with a newline after it.\n"
+            "- Do not include prefixes like 'Assistant:' or 'Bot:' in the response.\n"
+            "- Make bullet points concise, complete sentences with a period.\n"
+            "- Avoid colons in headings or bullet points.\n"
+            "- Do not combine multiple descriptions in one bullet.\n"
+            "- Do not use numbered lists or other bullet symbols.\n"
+            "- Use the user's exact input, even if misspelled, like 'fevr'.\n"
+            "- Add extra medical information in a clear format.\n"
+            "- Respond only in English.\n"
+            "- Always include a `## Recommendations` section.\n"
+            "- Recommend consulting a doctor for a professional diagnosis.\n"
+            "- After generating the response, check if bullet points use `•` and are on separate lines.\n"
+            "- If bullet points are combined or use the wrong symbol, reformat them to use `•` and add newlines.\n"
+            f"Here are the user's symptoms: {symptoms}. What might this indicate based on medical guidelines? Provide general information and recommend consulting a doctor."
         )
-        
         try:
             result = self.qa_chain({"question": query, "chat_history": []})
             answer = result["answer"]
-            
-            # Ensure proper formatting
-            if "**Possible Conditions**" not in answer:
-                answer = "**Possible Conditions**\n" + answer
-                
-            if "## Recommendations" not in answer:
-                answer += "\n\n## Recommendations\n• Consult a doctor for a professional diagnosis.\n• Monitor your symptoms and note any changes.\n• Stay hydrated and get adequate rest."
-                
-            # Format the response
-            formatted_answer = self.format_response(answer)
-            return formatted_answer
-            
+            return answer
         except ValueError as e:
             logger.error(f"API error in check_symptoms: {str(e)}")
             error_str = str(e).lower()
@@ -4912,13 +4891,4 @@ class ModelAPI:
                     "• Free models may have limited availability.\n"
                     "• Check OpenRouter.ai for model status.\n"
                 )
-            return (
-                "**Error Occurred**\n"
-                "• There was a problem processing your symptoms.\n"
-                "• Please try again later or describe your symptoms differently.\n"
-                "• For medical concerns, please consult a healthcare professional.\n\n"
-                "## Additional Information\n"
-                "• Try rephrasing your symptoms for better results.\n"
-                "• Ensure a stable internet connection.\n"
-                "• Contact support if the issue persists.\n"
-            )
+            raise e
