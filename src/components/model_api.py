@@ -4244,7 +4244,6 @@ class ModelAPI:
                 )
             raise e
 
-
 # from langchain_openai import ChatOpenAI
 # from langchain.chains import ConversationalRetrievalChain
 # from dotenv import load_dotenv
