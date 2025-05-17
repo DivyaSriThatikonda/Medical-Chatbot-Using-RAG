@@ -4568,11 +4568,17 @@ class ModelAPI:
             logger.error("OPENROUTER_API_KEY is not set in .env file")
             raise ValueError("Missing OPENROUTER_API_KEY. Please set it in the .env file.")
         
-        self.llm = ChatOpenAI(
-            model="deepseek/deepseek-chat:free",
-            openai_api_key=api_key,
-            openai_api_base="https://openrouter.ai/api/v1"
-        )
+        try:
+            self.llm = ChatOpenAI(
+                model="deepseek/deepseek-chat:free",
+                openai_api_key=api_key,
+                openai_api_base="https://openrouter.ai/api/v1"
+            )
+            logger.info("API initialization successful")
+        except Exception as e:
+            logger.error(f"API initialization error: {str(e)}")
+            raise ValueError(f"Failed to initialize API: {str(e)}")
+        
         self.qa_chain = ConversationalRetrievalChain.from_llm(
             llm=self.llm,
             retriever=vector_store.as_retriever(),
@@ -4811,7 +4817,16 @@ class ModelAPI:
                     "• Free models may have limited availability.\n"
                     "• Check OpenRouter.ai for model status.\n"
                 )
-            raise e
+            return (
+                "## Error Occurred\n"
+                "• There was a problem processing your request.\n"
+                "• The system may be experiencing technical difficulties.\n"
+                "• Please try again with a different question.\n\n"
+                "## Troubleshooting\n"
+                "• Try refreshing the page.\n"
+                "• Check your internet connection.\n"
+                "• Wait a few minutes before trying again.\n"
+            )
 
     def check_symptoms(self, symptoms):
         if not symptoms.strip() or symptoms.lower() in ["i don't feel well", "not feeling well"]:
@@ -4891,4 +4906,13 @@ class ModelAPI:
                     "• Free models may have limited availability.\n"
                     "• Check OpenRouter.ai for model status.\n"
                 )
-            raise e
+            return (
+                "**Error Occurred**\n"
+                "• There was a problem processing your symptoms.\n"
+                "• Please try again later or describe your symptoms differently.\n"
+                "• For medical concerns, please consult a healthcare professional.\n\n"
+                "## Additional Information\n"
+                "• Try rephrasing your symptoms for better results.\n"
+                "• Ensure a stable internet connection.\n"
+                "• Contact support if the issue persists.\n"
+            )
