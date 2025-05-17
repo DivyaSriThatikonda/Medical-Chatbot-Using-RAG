@@ -4915,4 +4915,4 @@ class ModelAPI:
                 "• Try rephrasing your symptoms for better results.\n"
                 "• Ensure a stable internet connection.\n"
                 "• Contact support if the issue persists.\n"
-            )
+                  )
