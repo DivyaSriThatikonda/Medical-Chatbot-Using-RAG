@@ -3547,6 +3547,23 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Custom CSS for pink boxes and justified text
+st.markdown("""
+    <style>
+    .user-message {
+        background-color: #fce4ec;
+        padding: 10px;
+        border-radius: 5px;
+        margin-bottom: 10px;
+        width: 50%;
+    }
+    .assistant-message {
+        text-align: justify;
+        margin-bottom: 10px;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
 st.title("Medical Chatbot")
 
 # Initialize session state
@@ -3558,7 +3575,6 @@ if "symptoms_input" not in st.session_state:
     st.session_state.symptoms_input = ""
 
 try:
-    # Initialize embedding and model
     embedding = Embedding(index_name="medical-index")
     vector_store = embedding.get_vector_store()
     model_api = ModelAPI(vector_store)
@@ -3592,7 +3608,7 @@ if st.button("Check Symptoms"):
         try:
             with st.spinner("Analyzing symptoms..."):
                 response = model_api.check_symptoms(symptoms_input)
-                st.markdown(f"**Analysis**:\n{response}")
+                st.markdown(f"**Analysis**:\n{response}", unsafe_allow_html=True)
         except Exception as e:
             st.error(f"Error analyzing symptoms: {str(e)}")
             logger.error(f"Symptom checker error: {str(e)}")
@@ -3602,9 +3618,9 @@ if st.button("Check Symptoms"):
 # Display chat history
 for role, message in st.session_state.messages:
     if role == "user":
-        st.write(f"**You**: {message}")
+        st.markdown(f'<div class="user-message">{message}</div>', unsafe_allow_html=True)
     else:
-        st.markdown(f"**Assistant**:\n{message}")
+        st.markdown(f'<div class="assistant-message">{message}</div>', unsafe_allow_html=True)
 
 if __name__ == "__main__":
     logger.info("App running successfully")
