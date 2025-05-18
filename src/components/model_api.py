@@ -5297,23 +5297,23 @@ class ModelAPI:
         self.fallback_responses = {
             "what causes high blood pressure?": (
                 "## Causes of High Blood Pressure\n"
-                "- Lifestyle factors like high salt intake, obesity, and smoking.\n"
-                "- Medical conditions such as diabetes or kidney disease.\n"
-                "- Genetic predisposition, stress, and aging.\n\n"
+                "• High salt intake, obesity, and smoking contribute to hypertension.\n"
+                "• Diabetes or kidney disease can increase blood pressure.\n"
+                "• Genetics, stress, and aging are risk factors.\n"
                 "## Additional Information\n"
-                "- Hypertension affects over 1 billion people globally.\n"
-                "- Regular monitoring can prevent complications.\n"
-                "Consult a doctor for personalized advice."
+                "• Over 1 billion people globally have hypertension.\n"
+                "• Regular monitoring prevents complications.\n"
+                "I'm not a doctor; consult one."
             ),
             "what is anemia?": (
                 "## What is Anemia\n"
-                "- Anemia is a condition with low red blood cells or hemoglobin.\n"
-                "- Symptoms include fatigue, shortness of breath, and pale skin.\n"
-                "- Types include iron-deficiency and vitamin B12 deficiency anemia.\n\n"
+                "• Anemia is low red blood cells or hemoglobin.\n"
+                "• Symptoms include fatigue, shortness of breath, and pale skin.\n"
+                "• Types include iron-deficiency and vitamin B12 deficiency.\n"
                 "## Additional Information\n"
-                "- Anemia affects about 25% of the global population.\n"
-                "- Blood tests can confirm diagnosis.\n"
-                "Consult a doctor for diagnosis and treatment."
+                "• About 25% of the global population has anemia.\n"
+                "• Blood tests confirm diagnosis.\n"
+                "I'm not a doctor; consult one."
             )
         }
 
@@ -5342,25 +5342,6 @@ class ModelAPI:
             return "Hello! I'm your medical assistant. How can I help with health questions?"
         return None
 
-    def check_repetitive_question(self, question, chat_history):
-        question_lower = question.lower().strip()
-        if "blood pressure" in question_lower and ("cause" in question_lower or "what causes" in question_lower):
-            for prev_question, _ in chat_history:
-                prev_question_lower = prev_question.lower().strip()
-                if "blood pressure" in prev_question_lower and (
-                        "cause" in prev_question_lower or "what causes" in prev_question_lower):
-                    return (
-                        "## Recap of High Blood Pressure Causes\n"
-                        "- Lifestyle factors like high salt intake, obesity, and smoking.\n"
-                        "- Medical conditions such as kidney disease or diabetes.\n"
-                        "- Genetic predisposition, stress, and aging.\n\n"
-                        "## Additional Information\n"
-                        "- Blood pressure screenings are recommended annually.\n"
-                        "- Medications like ACE inhibitors can help.\n"
-                        "Want to know more about managing high blood pressure?"
-                    )
-        return None
-
     def get_response(self, question, chat_history):
         start_time = time.time()
         greeting_response = self.is_greeting(question)
@@ -5369,11 +5350,6 @@ class ModelAPI:
             return greeting_response
 
         question_lower = question.lower().strip()
-        repetitive_response = self.check_repetitive_question(question, chat_history)
-        if repetitive_response:
-            logger.info(f"Query: {question}, Response: {repetitive_response}, Time: {time.time() - start_time}s, Cached: True")
-            return repetitive_response
-
         if question_lower in self.response_cache:
             logger.info(f"Query: {question}, Response: {self.response_cache[question_lower]}, Time: {time.time() - start_time}s, Cached: True")
             return self.response_cache[question_lower]
@@ -5384,10 +5360,8 @@ class ModelAPI:
             logger.info(f"Query: {question}, Response: {response}, Time: {time.time() - start_time}s, Cached: True")
             return response
 
-        # Clear chat history to prevent context bleed
         search_query = self.rewrite_query(question)
-
-        prompt = f"""You are a medical assistant. Answer in English only, using concise sentences. Use bullet points (- Item.) for key points. Do not use bold or italic text except for headings. Base the answer on the medical book context or general medical knowledge if context is missing. Clarify you're not a doctor and suggest consulting one.
+        prompt = f"""You are a medical assistant. Answer in English only. Provide concise, one-line answers as bullet points (• Item.). Use ## for headings. Base answers on the provided medical context or general medical knowledge. State "I'm not a doctor; consult one" at the end.
 
 Question: {question}
 
@@ -5400,12 +5374,10 @@ Answer:"""
             if "provided context does not contain information" in answer.lower() or "not found in the context" in answer.lower():
                 answer = (
                     "## Information Not Available\n"
-                    "- The medical database lacks details on this topic.\n"
-                    "- This question is outside the available information.\n"
-                    "- Consult a healthcare professional for accurate information.\n\n"
-                    "## Additional Information\n"
-                    "- Resources like WebMD offer general guidance.\n"
-                    "- Local clinics provide personalized consultations.\n"
+                    "• No details found in the medical database.\n"
+                    "• This topic is outside available information.\n"
+                    "• Consult a healthcare professional for answers.\n"
+                    "I'm not a doctor; consult one."
                 )
             else:
                 if not answer.startswith("##"):
@@ -5413,9 +5385,9 @@ Answer:"""
                 lines = answer.split("\n")
                 formatted_lines = []
                 for line in lines:
-                    if line.strip() and not line.startswith(("#", "-")):
-                        formatted_lines.append(f"- {line.strip()}.")
-                    elif line.startswith("-") and not line.endswith("."):
+                    if line.strip() and not line.startswith(("#", "•")):
+                        formatted_lines.append(f"• {line.strip()}.")
+                    elif line.startswith("•") and not line.endswith("."):
                         line = line.rstrip() + "."
                     formatted_lines.append(line)
                 answer = "\n".join(formatted_lines)
@@ -5430,12 +5402,10 @@ Answer:"""
                 time.sleep(10)
                 return (
                     "## Model Unavailable\n"
-                    "- The medical database is temporarily unavailable.\n"
-                    "- Try again later or with a different question.\n"
-                    "- Consult a healthcare professional for urgent needs.\n\n"
-                    "## Additional Information\n"
-                    "- Free models have limited availability.\n"
-                    "- Check OpenRouter.ai for model status.\n"
+                    "• The medical database is temporarily unavailable.\n"
+                    "• Try again later or with a different question.\n"
+                    "• Consult a healthcare professional for urgent needs.\n"
+                    "I'm not a doctor; consult one."
                 )
             raise e
 
@@ -5443,21 +5413,20 @@ Answer:"""
         start_time = time.time()
         if not symptoms.strip() or symptoms.lower() in ["i don't feel well", "not feeling well"]:
             response = (
-                "**Symptom Information Needed**\n"
-                "- Specific symptoms are needed for analysis.\n"
-                "- Examples include fever, pain, or fatigue.\n"
-                "- Consult a doctor for a thorough evaluation.\n\n"
-                "## Additional Information\n"
-                "- A symptom diary can aid diagnosis.\n"
-                "- Urgent symptoms like chest pain need immediate attention.\n"
+                "## Symptom Information Needed\n"
+                "• Specific symptoms are required for analysis.\n"
+                "• Examples include fever, cough, or chest pain.\n"
+                "• Consult a doctor for a thorough evaluation.\n"
+                "I'm not a doctor; consult one."
             )
             logger.info(f"Symptoms: {symptoms}, Response: {response}, Time: {time.time() - start_time}s")
             return response
 
         search_query = self.rewrite_query(symptoms)
-        prompt = f"""You are a medical assistant. List possible conditions for the symptoms in English, using concise sentences. Use bullet points (- Condition.) for conditions. Use bold only for **Possible Conditions** heading. Base the answer on the medical book context or general medical knowledge if context is missing. Clarify you're not a doctor and suggest consulting one.
+        prompt = f"""You are a medical assistant. Answer in English only. List possible conditions for the symptoms as one-line bullet points (• Condition.). Use **Possible Conditions** for the heading. Base answers on the provided medical context or general medical knowledge. State "I'm not a doctor; consult one" at the end.
 
 Symptoms: {symptoms}
+
 Answer:"""
 
         try:
@@ -5467,28 +5436,20 @@ Answer:"""
             if "provided context does not contain information" in answer.lower() or "not found in the context" in answer.lower():
                 answer = (
                     "**Possible Conditions**\n"
-                    "- The medical database lacks details on these symptoms.\n"
-                    "- This query is outside the available information.\n"
-                    "- Consult a healthcare professional for accurate diagnosis.\n\n"
-                    "## Additional Information\n"
-                    "- Resources like WebMD offer general guidance.\n"
-                    "- Local clinics provide personalized consultations.\n"
+                    "• No details found in the medical database.\n"
+                    "• This query is outside available information.\n"
+                    "• Consult a healthcare professional for answers.\n"
+                    "I'm not a doctor; consult one."
                 )
             else:
                 if not answer.startswith("**Possible Conditions**"):
                     answer = f"**Possible Conditions**\n{answer}"
                 lines = answer.split("\n")
                 formatted_lines = []
-                seen_conditions = False
                 for line in lines:
-                    if line.startswith("**Possible Conditions**"):
-                        seen_conditions = True
-                    elif seen_conditions and not line.startswith("-") and line.strip():
-                        formatted_lines.append("")
-                        seen_conditions = False
-                    if line.strip() and not line.startswith(("#", "-")):
-                        formatted_lines.append(f"- {line.strip()}.")
-                    elif line.startswith("-") and not line.endswith("."):
+                    if line.strip() and not line.startswith(("#", "•", "**")):
+                        formatted_lines.append(f"• {line.strip()}.")
+                    elif line.startswith("•") and not line.endswith("."):
                         line = line.rstrip() + "."
                     formatted_lines.append(line)
                 answer = "\n".join(formatted_lines)
@@ -5502,11 +5463,9 @@ Answer:"""
                 time.sleep(10)
                 return (
                     "**Model Unavailable**\n"
-                    "- The medical database is temporarily unavailable.\n"
-                    "- Try again later or with different symptoms.\n"
-                    "- Consult a healthcare professional for urgent needs.\n\n"
-                    "## Additional Information\n"
-                    "- Free models have limited availability.\n"
-                    "- Check OpenRouter.ai for model status.\n"
+                    "• The medical database is temporarily unavailable.\n"
+                    "• Try again later or with different symptoms.\n"
+                    "• Consult a healthcare professional for urgent needs.\n"
+                    "I'm not a doctor; consult one."
                 )
             raise e
