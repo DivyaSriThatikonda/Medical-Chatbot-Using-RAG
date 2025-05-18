@@ -5285,32 +5285,16 @@ class ModelAPI:
             model="deepseek/deepseek-chat:free",
             openai_api_key=api_key,
             openai_api_base="https://openrouter.ai/api/v1",
-            max_tokens=500,  # Reduced for Streamlit Cloud
+            max_tokens=500,
             temperature=0.7
         )
         self.qa_chain = ConversationalRetrievalChain.from_llm(
             llm=self.llm,
-            retriever=vector_store.as_retriever(search_kwargs={"k": 5}),  # Reduced for performance
+            retriever=vector_store.as_retriever(search_kwargs={"k": 5}),
             return_source_documents=True
         )
         self.response_cache = {}
         self.fallback_responses = {
-            "what are the symptoms of the flu?": (
-                "## Symptoms of the Flu\n"
-                "- Fever often high, 100°F to 104°F or higher.\n"
-                "- Chills and sweats.\n"
-                "- Cough usually dry.\n"
-                "- Sore throat.\n"
-                "- Muscle aches or body aches.\n"
-                "- Headache.\n"
-                "- Fatigue or weakness.\n"
-                "- Runny or stuffy nose.\n"
-                "- Nausea, vomiting, or diarrhea more common in children.\n\n"
-                "## Additional Information\n"
-                "- Influenza affects 5-20% of the population annually.\n"
-                "- Antiviral medications can reduce severity if taken early.\n"
-                "Consult a healthcare provider if you suspect the flu."
-            ),
             "what causes high blood pressure?": (
                 "## Causes of High Blood Pressure\n"
                 "- Lifestyle factors like high salt intake, obesity, and smoking.\n"
@@ -5400,17 +5384,17 @@ class ModelAPI:
             logger.info(f"Query: {question}, Response: {response}, Time: {time.time() - start_time}s, Cached: True")
             return response
 
-        limited_history = chat_history[-1:] if chat_history else []
+        # Clear chat history to prevent context bleed
         search_query = self.rewrite_query(question)
 
-        prompt = f"""You are a medical assistant. Answer in English only, using concise sentences. Use bullet points (- Item.) for key points. Do not use bold or italic text. Base the answer on the medical book context. Clarify you're not a doctor and suggest consulting one.
+        prompt = f"""You are a medical assistant. Answer in English only, using concise sentences. Use bullet points (- Item.) for key points. Do not use bold or italic text except for headings. Base the answer on the medical book context or general medical knowledge if context is missing. Clarify you're not a doctor and suggest consulting one.
 
 Question: {question}
 
 Answer:"""
 
         try:
-            result = self.qa_chain({"question": prompt, "chat_history": limited_history, "query": search_query})
+            result = self.qa_chain({"question": prompt, "chat_history": [], "query": search_query})
             answer = result["answer"]
 
             if "provided context does not contain information" in answer.lower() or "not found in the context" in answer.lower():
@@ -5471,7 +5455,7 @@ Answer:"""
             return response
 
         search_query = self.rewrite_query(symptoms)
-        prompt = f"""You are a medical assistant. List possible conditions for the symptoms in English, using concise sentences. Use bullet points (- Condition.) for conditions. Use bold only for **Possible Conditions** heading. Base the answer on the medical book context. Clarify you're not a doctor and suggest consulting one.
+        prompt = f"""You are a medical assistant. List possible conditions for the symptoms in English, using concise sentences. Use bullet points (- Condition.) for conditions. Use bold only for **Possible Conditions** heading. Base the answer on the medical book context or general medical knowledge if context is missing. Clarify you're not a doctor and suggest consulting one.
 
 Symptoms: {symptoms}
 Answer:"""
