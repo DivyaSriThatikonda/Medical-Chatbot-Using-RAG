@@ -5270,7 +5270,6 @@ from langchain.chains import ConversationalRetrievalChain
 from dotenv import load_dotenv
 import os
 
-# Setup logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -5279,19 +5278,19 @@ class ModelAPI:
         load_dotenv()
         api_key = os.getenv("OPENROUTER_API_KEY")
         if not api_key:
-            logger.error("OPENROUTER_API_KEY is not set in .env file")
+            logger.error("OPENROUTER_API_KEY is not set")
             raise ValueError("Missing OPENROUTER_API_KEY. Please set it in the .env file.")
         
         self.llm = ChatOpenAI(
             model="deepseek/deepseek-chat:free",
             openai_api_key=api_key,
             openai_api_base="https://openrouter.ai/api/v1",
-            max_tokens=1000,
+            max_tokens=500,  # Reduced for Streamlit Cloud
             temperature=0.7
         )
         self.qa_chain = ConversationalRetrievalChain.from_llm(
             llm=self.llm,
-            retriever=vector_store.as_retriever(search_kwargs={"k": 10}),
+            retriever=vector_store.as_retriever(search_kwargs={"k": 5}),  # Reduced for performance
             return_source_documents=True
         )
         self.response_cache = {}
@@ -5310,75 +5309,31 @@ class ModelAPI:
                 "## Additional Information\n"
                 "- Influenza affects 5-20% of the population annually.\n"
                 "- Antiviral medications can reduce severity if taken early.\n"
-                "Symptoms often come on suddenly and can range from mild to severe. If you suspect you have the flu, especially if you are at high risk for complications, consult a healthcare provider."
+                "Consult a healthcare provider if you suspect the flu."
             ),
             "what causes high blood pressure?": (
                 "## Causes of High Blood Pressure\n"
-                "- Lifestyle factors like poor diet with high salt intake, obesity, lack of physical activity, excessive alcohol consumption, and smoking.\n"
-                "- Underlying medical conditions such as diabetes, kidney disease, and hormonal disorders.\n"
-                "- Genetic predisposition where a family history of hypertension increases risk.\n"
-                "- Stress where chronic stress contributes to elevated blood pressure.\n"
-                "- Aging as blood pressure often increases with age.\n\n"
+                "- Lifestyle factors like high salt intake, obesity, and smoking.\n"
+                "- Medical conditions such as diabetes or kidney disease.\n"
+                "- Genetic predisposition, stress, and aging.\n\n"
                 "## Additional Information\n"
                 "- Hypertension affects over 1 billion people globally.\n"
-                "- Regular monitoring can prevent complications like heart attack.\n"
-                "Treatment often involves lifestyle changes and medications if needed. Would you like to know more about managing high blood pressure?"
+                "- Regular monitoring can prevent complications.\n"
+                "Consult a doctor for personalized advice."
             ),
             "what is anemia?": (
                 "## What is Anemia\n"
-                "- Anemia is a condition with abnormally low levels of healthy red blood cells or hemoglobin, which carries oxygen to tissues.\n"
-                "- Fatigue or weakness.\n"
-                "- Shortness of breath.\n"
-                "- Pale skin.\n"
-                "- Dizziness or lightheadedness.\n\n"
-                "## Types of Anemia\n"
-                "- Iron-deficiency anemia caused by lack of iron, often due to poor diet or blood loss.\n"
-                "- Vitamin B12 deficiency anemia due to insufficient B12, often linked to diet or absorption issues.\n"
-                "- Sickle cell anemia, a genetic condition where red blood cells are abnormally shaped.\n\n"
+                "- Anemia is a condition with low red blood cells or hemoglobin.\n"
+                "- Symptoms include fatigue, shortness of breath, and pale skin.\n"
+                "- Types include iron-deficiency and vitamin B12 deficiency anemia.\n\n"
                 "## Additional Information\n"
                 "- Anemia affects about 25% of the global population.\n"
-                "- Blood tests like CBC can confirm diagnosis.\n"
-                "If you suspect anemia, a doctor can diagnose it with a blood test and recommend treatment like iron supplements or dietary changes."
-            ),
-            "what are symptoms of heart attack?": (
-                "## Symptoms of a Heart Attack\n"
-                "- Chest pain or discomfort often described as pressure, squeezing, or pain in the center or left side of the chest, lasting minutes or recurring.\n"
-                "- Upper body discomfort in one or both arms, jaw, neck, back, or stomach.\n"
-                "- Shortness of breath with or without chest pain.\n"
-                "- Cold sweat, nausea, or lightheadedness accompanying chest discomfort.\n\n"
-                "## Additional Information\n"
-                "- Heart attacks are a leading cause of death worldwide.\n"
-                "- Immediate treatment like aspirin can improve outcomes.\n"
-                "If you experience these symptoms, especially chest pain or shortness of breath, seek emergency medical attention immediately."
-            ),
-            "what causes kidney stones?": (
-                "## Causes of Kidney Stones\n"
-                "- Dehydration where not drinking enough water leads to concentrated urine, increasing stone formation risk.\n"
-                "- Diet with high intake of sodium, oxalate found in foods like spinach, or animal protein.\n"
-                "- Medical conditions like hyperparathyroidism, gout, or urinary tract infections.\n"
-                "- Family history with a genetic predisposition to kidney stones.\n"
-                "- Obesity where higher body weight increases risk.\n"
-                "- Certain medications like some diuretics or calcium-based antacids.\n\n"
-                "## Additional Information\n"
-                "- Kidney stones affect about 10% of people in their lifetime.\n"
-                "- Imaging tests like CT scans can detect stones.\n"
-                "Kidney stones can be made of different materials like calcium oxalate or uric acid, depending on the cause."
-            ),
-            "how can i prevent them?": (
-                "## Preventing Kidney Stones\n"
-                "- Stay hydrated by drinking plenty of water, aiming for 2-3 liters daily to dilute urine.\n"
-                "- Adjust diet by reducing sodium, oxalate-rich foods like spinach, and animal protein, and eating more citrus fruits containing citrate to prevent stones.\n"
-                "- Maintain a healthy weight as obesity increases risk, so regular exercise and a balanced diet help.\n"
-                "- Monitor medical conditions like gout or urinary tract infections that contribute to stones.\n"
-                "- Consult a doctor if you have a history of kidney stones for specific dietary changes or medications.\n\n"
-                "## Additional Information\n"
-                "- Citrate supplements may reduce stone formation.\n"
-                "- Regular check-ups can catch stones early.\n"
+                "- Blood tests can confirm diagnosis.\n"
+                "Consult a doctor for diagnosis and treatment."
             )
         }
 
     def rewrite_query(self, query):
-        """Rewrite query for better Pinecone retrieval."""
         stop_words = ["why", "do", "i", "have", "what", "is", "are"]
         keywords = " ".join([word for word in query.split() if word.lower() not in stop_words])
         return keywords if keywords else query
@@ -5386,13 +5341,13 @@ class ModelAPI:
     def is_greeting(self, question):
         question_lower = question.lower().strip()
         greeting_responses = {
-            "good morning": "Good morning! How can I assist with your medical questions today?",
-            "good afternoon": "Good afternoon! Ready to help with any health concerns you have.",
-            "good evening": "Good evening! Here to answer your medical questions before you wind down.",
-            "good night": "Good night! Feel free to ask any medical questions before you rest.",
-            "thank you": "You're welcome! Happy to help with any more health questions.",
-            "thanks": "You're welcome! Let me know if you have more medical queries.",
-            "how can i help with medical info today?": "Hello! I'm your medical assistant. How can I help you with your health questions today?"
+            "good morning": "Good morning! How can I assist with your medical questions?",
+            "good afternoon": "Good afternoon! Ready to help with health queries.",
+            "good evening": "Good evening! Here for your medical questions.",
+            "good night": "Good night! Ask any medical questions before you rest.",
+            "thank you": "You're welcome! Happy to help with more questions.",
+            "thanks": "You're welcome! Any more medical queries?",
+            "how can i help with medical info today?": "Hello! I'm your medical assistant. How can I help with health questions?"
         }
         for greeting, response in greeting_responses.items():
             if greeting in question_lower:
@@ -5400,13 +5355,13 @@ class ModelAPI:
         generic_greetings = ["hello", "hi", "hey"]
         words = question_lower.split()
         if any(word in generic_greetings for word in words):
-            return "Hello! I'm your medical assistant. How can I help you with your health questions today?"
+            return "Hello! I'm your medical assistant. How can I help with health questions?"
         return None
 
     def check_repetitive_question(self, question, chat_history):
         question_lower = question.lower().strip()
         if "blood pressure" in question_lower and ("cause" in question_lower or "what causes" in question_lower):
-            for prev_question, prev_answer in chat_history:
+            for prev_question, _ in chat_history:
                 prev_question_lower = prev_question.lower().strip()
                 if "blood pressure" in prev_question_lower and (
                         "cause" in prev_question_lower or "what causes" in prev_question_lower):
@@ -5417,51 +5372,39 @@ class ModelAPI:
                         "- Genetic predisposition, stress, and aging.\n\n"
                         "## Additional Information\n"
                         "- Blood pressure screenings are recommended annually.\n"
-                        "- Medications like ACE inhibitors can manage hypertension.\n"
-                        "Would you like to know more about managing high blood pressure, or do you have a different question?"
+                        "- Medications like ACE inhibitors can help.\n"
+                        "Want to know more about managing high blood pressure?"
                     )
         return None
 
     def get_response(self, question, chat_history):
         start_time = time.time()
-        # Check for greetings
         greeting_response = self.is_greeting(question)
         if greeting_response:
             logger.info(f"Query: {question}, Response: {greeting_response}, Time: {time.time() - start_time}s")
             return greeting_response
 
-        # Normalize question
         question_lower = question.lower().strip()
-
-        # Check for repetitive questions
         repetitive_response = self.check_repetitive_question(question, chat_history)
         if repetitive_response:
             logger.info(f"Query: {question}, Response: {repetitive_response}, Time: {time.time() - start_time}s, Cached: True")
             return repetitive_response
 
-        # Check cache
         if question_lower in self.response_cache:
             logger.info(f"Query: {question}, Response: {self.response_cache[question_lower]}, Time: {time.time() - start_time}s, Cached: True")
             return self.response_cache[question_lower]
 
-        # Check fallback responses
         if question_lower in self.fallback_responses:
             response = self.fallback_responses[question_lower]
             self.response_cache[question_lower] = response
             logger.info(f"Query: {question}, Response: {response}, Time: {time.time() - start_time}s, Cached: True")
             return response
 
-        # Limit chat history to last 1 exchange to avoid context bleed
         limited_history = chat_history[-1:] if chat_history else []
-        context = ""
-
-        # Rewrite query for better retrieval
         search_query = self.rewrite_query(question)
 
-        # Simplified prompt with strict formatting
-        prompt = f"""You are a medical assistant. Answer the question based on the provided medical book context in concise sentences. Respond only in English. Use bullet points (- Item.) for key points. Do not use bold or italic text. Clarify you're not a doctor and suggest consulting one.
+        prompt = f"""You are a medical assistant. Answer in English only, using concise sentences. Use bullet points (- Item.) for key points. Do not use bold or italic text. Base the answer on the medical book context. Clarify you're not a doctor and suggest consulting one.
 
-Context: {context}
 Question: {question}
 
 Answer:"""
@@ -5470,27 +5413,23 @@ Answer:"""
             result = self.qa_chain({"question": prompt, "chat_history": limited_history, "query": search_query})
             answer = result["answer"]
 
-            # Post-process to enforce formatting
             if "provided context does not contain information" in answer.lower() or "not found in the context" in answer.lower():
                 answer = (
                     "## Information Not Available\n"
-                    "- The medical database does not contain details about this topic.\n"
-                    "- This question appears outside the scope of available information.\n"
-                    "- Consult a reliable medical source or healthcare professional for accurate information.\n\n"
+                    "- The medical database lacks details on this topic.\n"
+                    "- This question is outside the available information.\n"
+                    "- Consult a healthcare professional for accurate information.\n\n"
                     "## Additional Information\n"
-                    "- Online medical resources like WebMD can provide general guidance.\n"
-                    "- Local clinics offer consultations for personalized advice.\n"
-                    "Would you like to ask about something else?"
+                    "- Resources like WebMD offer general guidance.\n"
+                    "- Local clinics provide personalized consultations.\n"
                 )
             else:
-                # Ensure Markdown formatting
                 if not answer.startswith("##"):
                     answer = f"## Response\n{answer}"
                 lines = answer.split("\n")
                 formatted_lines = []
                 for line in lines:
                     if line.strip() and not line.startswith(("#", "-")):
-                        # Convert plain text to bullet points
                         formatted_lines.append(f"- {line.strip()}.")
                     elif line.startswith("-") and not line.endswith("."):
                         line = line.rstrip() + "."
@@ -5505,22 +5444,15 @@ Answer:"""
             error_str = str(e).lower()
             if "no instances available" in error_str or "503" in error_str:
                 time.sleep(10)
-                try:
-                    result = self.qa_chain({"question": prompt, "chat_history": limited_history, "query": search_query})
-                    answer = result["answer"]
-                    self.response_cache[question_lower] = answer
-                    logger.info(f"Query: {question}, Response: {answer}, Time: {time.time() - start_time}s, Cached: False")
-                    return answer
-                except:
-                    return (
-                        "## Model Unavailable\n"
-                        "- The medical database is temporarily unavailable due to high demand.\n"
-                        "- Try again later or with a different question.\n"
-                        "- Consult a healthcare professional for urgent needs.\n\n"
-                        "## Additional Information\n"
-                        "- Free models may have limited availability.\n"
-                        "- Check OpenRouter.ai for model status.\n"
-                    )
+                return (
+                    "## Model Unavailable\n"
+                    "- The medical database is temporarily unavailable.\n"
+                    "- Try again later or with a different question.\n"
+                    "- Consult a healthcare professional for urgent needs.\n\n"
+                    "## Additional Information\n"
+                    "- Free models have limited availability.\n"
+                    "- Check OpenRouter.ai for model status.\n"
+                )
             raise e
 
     def check_symptoms(self, symptoms):
@@ -5528,21 +5460,18 @@ Answer:"""
         if not symptoms.strip() or symptoms.lower() in ["i don't feel well", "not feeling well"]:
             response = (
                 "**Symptom Information Needed**\n"
-                "- Specific symptoms are needed to provide a better analysis.\n"
+                "- Specific symptoms are needed for analysis.\n"
                 "- Examples include fever, pain, or fatigue.\n"
                 "- Consult a doctor for a thorough evaluation.\n\n"
                 "## Additional Information\n"
-                "- Keeping a symptom diary can help doctors diagnose issues.\n"
-                "- Urgent symptoms like chest pain require immediate attention.\n"
+                "- A symptom diary can aid diagnosis.\n"
+                "- Urgent symptoms like chest pain need immediate attention.\n"
             )
             logger.info(f"Symptoms: {symptoms}, Response: {response}, Time: {time.time() - start_time}s")
             return response
 
-        # Rewrite query for better retrieval
         search_query = self.rewrite_query(symptoms)
-
-        # Simplified prompt with strict formatting
-        prompt = f"""You are a medical assistant. Based on the symptoms and medical book context, list possible conditions in concise sentences. Respond only in English. Use bullet points (- Condition.) for conditions. Do not use bold or italic text except for **Possible Conditions** heading. Clarify you're not a doctor and suggest consulting one.
+        prompt = f"""You are a medical assistant. List possible conditions for the symptoms in English, using concise sentences. Use bullet points (- Condition.) for conditions. Use bold only for **Possible Conditions** heading. Base the answer on the medical book context. Clarify you're not a doctor and suggest consulting one.
 
 Symptoms: {symptoms}
 Answer:"""
@@ -5551,19 +5480,17 @@ Answer:"""
             result = self.qa_chain({"question": prompt, "chat_history": []})
             answer = result["answer"]
 
-            # Post-process to enforce formatting
             if "provided context does not contain information" in answer.lower() or "not found in the context" in answer.lower():
                 answer = (
                     "**Possible Conditions**\n"
-                    "- The medical database does not contain details about these symptoms.\n"
-                    "- This query appears outside the scope of available information.\n"
+                    "- The medical database lacks details on these symptoms.\n"
+                    "- This query is outside the available information.\n"
                     "- Consult a healthcare professional for accurate diagnosis.\n\n"
                     "## Additional Information\n"
-                    "- Online medical resources like WebMD can provide general guidance.\n"
-                    "- Local clinics offer consultations for personalized advice.\n"
+                    "- Resources like WebMD offer general guidance.\n"
+                    "- Local clinics provide personalized consultations.\n"
                 )
             else:
-                # Ensure correct heading and newline
                 if not answer.startswith("**Possible Conditions**"):
                     answer = f"**Possible Conditions**\n{answer}"
                 lines = answer.split("\n")
@@ -5589,21 +5516,13 @@ Answer:"""
             error_str = str(e).lower()
             if "no instances available" in error_str or "503" in error_str:
                 time.sleep(10)
-                try:
-                    result = self.qa_chain({"question": prompt, "chat_history": []})
-                    answer = result["answer"]
-                    if not answer.startswith("**Possible Conditions**"):
-                        answer = f"**Possible Conditions**\n{answer}"
-                    logger.info(f"Symptoms: {symptoms}, Response: {answer}, Time: {time.time() - start_time}s")
-                    return answer
-                except:
-                    return (
-                        "**Model Unavailable**\n"
-                        "- The medical database is temporarily unavailable due to high demand.\n"
-                        "- Try again later or with different symptoms.\n"
-                        "- Consult a healthcare professional for urgent needs.\n\n"
-                        "## Additional Information\n"
-                        "- Free models may have limited availability.\n"
-                        "- Check OpenRouter.ai for model status.\n"
-                    )
+                return (
+                    "**Model Unavailable**\n"
+                    "- The medical database is temporarily unavailable.\n"
+                    "- Try again later or with different symptoms.\n"
+                    "- Consult a healthcare professional for urgent needs.\n\n"
+                    "## Additional Information\n"
+                    "- Free models have limited availability.\n"
+                    "- Check OpenRouter.ai for model status.\n"
+                )
             raise e
