@@ -120,14 +120,12 @@ class Embedding:
             self.pc = PineconeClient(api_key=pinecone_api_key)
             self.index_name = index_name
             
-            # Initialize embeddings with CPU and minimal model
             self.embeddings = HuggingFaceEmbeddings(
                 model_name="sentence-transformers/all-MiniLM-L6-v2",
                 model_kwargs={"device": "cpu", "trust_remote_code": False},
                 encode_kwargs={"normalize_embeddings": True}
             )
             
-            # Check if index exists
             if index_name not in self.pc.list_indexes().names():
                 logger.info(f"Creating Pinecone index: {index_name}")
                 self.pc.create_index(
