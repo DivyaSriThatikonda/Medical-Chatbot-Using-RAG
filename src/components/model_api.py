@@ -5102,9 +5102,13 @@ logger = logging.getLogger(__name__)
 class ModelAPI:
     def __init__(self, vector_store):
         load_dotenv()
+        api_key = os.getenv("OPENROUTER_API_KEY")
+        if not api_key:
+            logger.error("OPENROUTER_API_KEY is not set")
+            raise ValueError("Missing OPENROUTER_API_KEY. Please set it in the .env file.")
         self.llm = ChatOpenAI(
             model="deepseek/deepseek-chat:free",
-            openai_api_key=os.getenv("OPENROUTER_API_KEY"),
+            openai_api_key=api_key,
             openai_api_base="https://openrouter.ai/api/v1"
         )
         self.qa_chain = ConversationalRetrievalChain.from_llm(
@@ -5216,4 +5220,13 @@ class ModelAPI:
                     "• Free models may have limited availability.\n"
                     "• Check OpenRouter.ai for model status.\n"
                 )
-            raise e
+            else:
+                return (
+                    "**Error Processing Symptoms**\n"
+                    "• An error occurred while processing your symptoms.\n"
+                    "• Please try again or enter different symptoms.\n"
+                    "• Consult a healthcare professional for urgent needs.\n\n"
+                    "## Additional Information\n"
+                    "• Check your input for errors or try again later.\n"
+                    "• Visit OpenRouter.ai for API status.\n"
+                )
