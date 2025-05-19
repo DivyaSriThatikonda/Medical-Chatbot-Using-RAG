@@ -5961,7 +5961,7 @@ Answer:"""
     def check_symptoms(self, symptoms):
         query = (
             f"""I have the following symptoms: {symptoms}. What might this indicate based on medical guidelines? Please provide general information and recommend consulting a doctor .
-If the user misspells symptoms, use the correct spellings and respond. Present the response in correct format along with bold headings. In the analysis section, use boldness for important text and headings, and never use `**` or `#` symbols alone. """
+If the user misspells symptoms, use the correct spellings and respond. Present the response in correct format along with bold headings. In other sections, use boldness for important text and headings, and never use `**` or `#` symbols alone. """
         )
         try:
             result = self.qa_chain({"question": query, "chat_history": []})
