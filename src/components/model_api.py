@@ -5351,9 +5351,7 @@ Answer:"""
                 )
             raise e
     def check_symptoms(self, symptoms):
-        query = f"I have the following symptoms: {symptoms}. What might this indicate based on medical guidelines? Please provide general information and recommend consulting a doctor .
-        Correct misspelled words in the symptoms to understand the intended meaning.
-        Never use `#` or `**` symbols in the response instead of boldness"
+        query = f"I have the following symptoms: {symptoms}. What might this indicate based on medical guidelines? Please provide general information and recommend consulting a doctor. Correct misspelled words in the symptoms to understand the intended meaning. Never use `#` or `**` symbols in the response instead of boldness"
         try:
             result = self.qa_chain({"question": query, "chat_history": []})
             return result["answer"]
