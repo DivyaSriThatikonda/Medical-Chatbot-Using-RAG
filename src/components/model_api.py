@@ -5461,7 +5461,7 @@ class ModelAPI:
             return self.response_cache[question_lower]
         try:
             modified_question = (
-                f"""You are a medical assistant . Answer in English only. Correct misspelled words in the question to understand the intended meaning.  Never use `#` or `**` symbols in the response; use `**Text**` for bold headings only (e.g., **Response**). Base answers on medical knowledge."
+                f"""You are a medical assistant answer in English only with proper formatting. Correct misspelled words in the question to understand the intended meaning.  Base answers on medical knowledge."
 
 Question: {question}
 
@@ -5503,7 +5503,7 @@ Answer:"""
         query = (
             f"""I have the following symptoms: {symptoms}. What might this indicate based on medical guidelines? Please provide general information and recommend consulting a doctor .
 Correct misspelled words in the symptoms to understand the intended meaning.
-Never use `#` or `**` symbols in the response instead of boldness"""
+Never use `#` or `**` symbols in the response and use boldness for headings"""
         )
         try:
             result = self.qa_chain({"question": query, "chat_history": []})
