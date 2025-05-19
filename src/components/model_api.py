@@ -6144,11 +6144,17 @@ If the user misspells symptoms, use the correct spellings and respond. Present t
             elif "rate limit exceeded" in error_str or "429" in error_str:
                 return (
                     "**Daily Quota Reached**\n"
+                            
                     "• We're sorry, but the daily request limit for our free medical assistant has been reached.\n"
+                            
                     "• Please try again tomorrow or after some time when the quota resets.\n"
+                            
                     "• For urgent needs, consult a healthcare professional.\n\n"
+                            
                     "**Additional Information**\n"
+                            
                     "• Free models have limited daily requests.\n"
+                            
                     "• Visit OpenRouter.ai for more details or to unlock additional requests.\n"
                 )
             else:
