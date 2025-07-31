@@ -17,7 +17,7 @@ class ModelAPI:
             logger.error("OPENROUTER_API_KEY is not set")
             raise ValueError("Missing OPENROUTER_API_KEY. Please set it in the .env file.")
         self.llm = ChatOpenAI(
-            model="deepseek/deepseek-chat:free",
+            model="deepseek/deepseek-r1-0528",
             openai_api_key=api_key,
             openai_api_base="https://openrouter.ai/api/v1"
         )
