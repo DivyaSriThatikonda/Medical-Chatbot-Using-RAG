@@ -1,7 +1,6 @@
 from langchain_openai import ChatOpenAI
 from langchain.chains import ConversationalRetrievalChain
 from dotenv import load_dotenv
-from difflib import SequenceMatcher
 import os
 import logging
 
@@ -47,24 +46,24 @@ class ModelAPI:
             return "Hello! I'm your medical assistant. How can I help you with your health questions today?"
         return None
 
-    # def check_repetitive_question(self, question, chat_history):
-    #     question_lower = question.lower().strip()
-    #     if "blood pressure" in question_lower and ("cause" in question_lower or "what causes" in question_lower):
-    #         for prev_question, prev_answer in chat_history:
-    #             prev_question_lower = prev_question.lower().strip()
-    #             if "blood pressure" in prev_question_lower and (
-    #                     "cause" in prev_question_lower or "what causes" in prev_question_lower):
-    #                 return (
-    #                     "**Recap of High Blood Pressure Causes**\n"
-    #                     "• Lifestyle factors like high salt intake, obesity, and smoking.\n"
-    #                     "• Medical conditions such as kidney disease or diabetes.\n"
-    #                     "• Genetic predisposition, stress, and aging.\n\n"
-    #                     "**Additional Information**\n"
-    #                     "• Blood pressure screenings are recommended annually.\n"
-    #                     "• Medications like ACE inhibitors can manage hypertension.\n"
-    #                     "Would you like to know more about managing high blood pressure, or do you have a different question?"
-    #                 )
-    #     return None
+    def check_repetitive_question(self, question, chat_history):
+        question_lower = question.lower().strip()
+        if "blood pressure" in question_lower and ("cause" in question_lower or "what causes" in question_lower):
+            for prev_question, prev_answer in chat_history:
+                prev_question_lower = prev_question.lower().strip()
+                if "blood pressure" in prev_question_lower and (
+                        "cause" in prev_question_lower or "what causes" in prev_question_lower):
+                    return (
+                        "**Recap of High Blood Pressure Causes**\n"
+                        "• Lifestyle factors like high salt intake, obesity, and smoking.\n"
+                        "• Medical conditions such as kidney disease or diabetes.\n"
+                        "• Genetic predisposition, stress, and aging.\n\n"
+                        "**Additional Information**\n"
+                        "• Blood pressure screenings are recommended annually.\n"
+                        "• Medications like ACE inhibitors can manage hypertension.\n"
+                        "Would you like to know more about managing high blood pressure, or do you have a different question?"
+                    )
+        return None
 
     def get_response(self, question, chat_history):
         question_lower = question.lower().strip()
