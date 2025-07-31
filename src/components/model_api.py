@@ -66,8 +66,6 @@ class ModelAPI:
     #                 )
     #     return None
 
-    from difflib import SequenceMatcher
-
     def detect_repetitive_question(self, question, chat_history, threshold=0.85):
         """
         Checks if a similar question has already been asked in the conversation history.
@@ -93,7 +91,7 @@ class ModelAPI:
         if greeting_response:
             return greeting_response
         # Check for repetitive questions
-        repetitive_response = self.check_repetitive_question(question, chat_history)
+        repetitive_response = self.detect_check_repetitive_question(question, chat_history)
         if repetitive_response:
             return repetitive_response
         # Check cache
