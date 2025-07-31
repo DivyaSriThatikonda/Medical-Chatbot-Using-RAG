@@ -66,26 +66,6 @@ class ModelAPI:
     #                 )
     #     return None
 
-
-
-    def detect_repetitive_question(self, question, chat_history, threshold=0.85):
-        """
-        Checks if a similar question has already been asked in the conversation history.
-        Returns a recap if it's found.
-        """
-        question_clean = question.lower().strip()
-        for prev_question, prev_answer in chat_history:
-            prev_clean = prev_question.lower().strip()
-            similarity = SequenceMatcher(None, question_clean, prev_clean).ratio()
-            if similarity >= threshold:
-                return (
-                    "**You've asked a similar question earlier. Here's a quick recap:**\n"
-                    f"{prev_answer}\n\n"
-                    "Would you like to explore more on this or ask something else?"
-                )
-        return None
-
-
     def get_response(self, question, chat_history):
         question_lower = question.lower().strip()
         # Check for greetings
