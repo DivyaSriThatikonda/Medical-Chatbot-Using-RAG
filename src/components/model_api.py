@@ -77,7 +77,7 @@ class ModelAPI:
             similarity = SequenceMatcher(None, question_clean, prev_clean).ratio()
             if similarity >= threshold:
                 return (
-                    "**You've asked a similar question earlier. Here's a quick recap:**\n"
+                    "You've asked a similar question earlier. Here's a quick recap:\n"
                     f"{prev_answer}\n\n"
                     "Would you like to explore more on this or ask something else?"
                 )
