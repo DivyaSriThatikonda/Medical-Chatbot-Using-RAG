@@ -91,7 +91,7 @@ class ModelAPI:
         if greeting_response:
             return greeting_response
         # Check for repetitive questions
-        repetitive_response = self.detect_check_repetitive_question(question, chat_history)
+        repetitive_response = self.detect_repetitive_question(question, chat_history)
         if repetitive_response:
             return repetitive_response
         # Check cache
